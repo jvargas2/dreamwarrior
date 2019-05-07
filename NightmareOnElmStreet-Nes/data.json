@@ -1,0 +1,36 @@
+{
+  "info": {
+    "player1_lives": {
+      "address": 310,
+      "type": ">n4"
+    },
+    "player1_score1": {
+      "address": 1628,
+      "type": "|u1"
+    },
+    "player1_score2": {
+      "address": 1627,
+      "type": "|u1"
+    },
+    "player1_score3": {
+      "address": 1626,
+      "type": "|u1"
+    },
+    "player1_score4": {
+      "address": 1625,
+      "type": "|u1"
+    },
+    "player1_score5": {
+      "address": 1624,
+      "type": "|u1"
+    },
+    "player1_score6": {
+      "address": 1623,
+      "type": "|u1"
+    },
+    "player1_score7": {
+      "address": 1622,
+      "type": "|u1"
+    }
+  }
+}
