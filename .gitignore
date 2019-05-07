@@ -1,9 +1,13 @@
 # macOS
 .DS_Store
 
+# IDE
+settings.json
+
 # Gym Retro
 rom.*
 rom.sha
+*.bk2
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
