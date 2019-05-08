@@ -15,6 +15,7 @@ import argparse
 import numpy as np
 import retro
 import gym
+import dreamwarrior
 
 
 EXPLORATION_PARAM = 0.005
@@ -186,11 +187,13 @@ class Brute:
 def brute_retro(
     game,
     max_episode_steps=4500,
-    timestep_limit=100_000_000,
+    # timestep_limit=100_000_000,
+    timestep_limit=100000000,
     state=retro.State.DEFAULT,
     scenario=None,
 ):
-    env = retro.make(game, state, use_restricted_actions=retro.Actions.DISCRETE, scenario=scenario)
+    # env = retro.make(game, state, use_restricted_actions=retro.Actions.DISCRETE, scenario=scenario)
+    env = dreamwarrior.make_custom_env(game, state, use_restricted_actions=retro.Actions.DISCRETE, scenario=scenario)
     env = Frameskip(env)
     env = TimeLimit(env, max_episode_steps=max_episode_steps)
 
@@ -202,7 +205,8 @@ def brute_retro(
         timesteps += len(acts)
 
         if rew > best_rew:
-            print(f"new best reward {best_rew} => {rew}")
+            # print(f"new best reward {best_rew} => {rew}")
+            print("new best reward %f => %f" % (best_rew, rew))
             best_rew = rew
             env.unwrapped.record_movie("best.bk2")
             env.reset()
@@ -216,7 +220,7 @@ def brute_retro(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--game', default='Airstriker-Genesis')
+    parser.add_argument('--game', default='NightmareOnElmStreet-Nes')
     parser.add_argument('--state', default=retro.State.DEFAULT)
     parser.add_argument('--scenario', default=None)
     args = parser.parse_args()
