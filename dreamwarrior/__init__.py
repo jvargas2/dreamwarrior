@@ -6,11 +6,12 @@ from retro.enums import State
 
 # Environments
 
-def make_custom_env(game, state=State.DEFAULT, **kwargs):
+def make_custom_env(path, game, state=State.DEFAULT, **kwargs):
     """Uses retro.make() but with local custom games path
     """
     integrations = retro.data.Integrations.CUSTOM
-    integrations.add_custom_path(os.path.abspath('../data'))
+    # TODO: Make path relative to package or a param
+    integrations.add_custom_path(os.path.abspath(path))
     env = retro.make(
         game=game,
         state=state,
