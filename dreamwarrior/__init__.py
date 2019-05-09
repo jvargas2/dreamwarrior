@@ -31,9 +31,10 @@ def play_movie(bk2_path):
     """
     print('Attempting to play %s' % bk2_path)
     movie = retro.Movie(bk2_path)
-    movie.step()
+    # movie.step()
 
     env = make_custom_env(
+        path='../data/',
         game=movie.get_game(),
         state=None,
         use_restricted_actions=retro.Actions.ALL,
