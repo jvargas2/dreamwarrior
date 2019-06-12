@@ -5,7 +5,6 @@ import retro
 from retro.enums import State
 
 # Environments
-
 def make_custom_env(path, game, state=State.DEFAULT, **kwargs):
     """Uses retro.make() but with local custom games path
     """
@@ -21,7 +20,6 @@ def make_custom_env(path, game, state=State.DEFAULT, **kwargs):
     return env
 
 # Movies
-
 def play_movie(bk2_path):
     """Plays recording from a .bk2 file.
     Based on example found at: https://retro.readthedocs.io/en/latest/python.html#observations
@@ -34,7 +32,7 @@ def play_movie(bk2_path):
     # movie.step()
 
     env = make_custom_env(
-        path='../data/',
+        path='dreamwarrior/data/',
         game=movie.get_game(),
         state=None,
         use_restricted_actions=retro.Actions.ALL,
@@ -48,9 +46,9 @@ def play_movie(bk2_path):
 
     while movie.step():
         keys = []
-        for p in range(movie.players):
+        for player in range(movie.players):
             for i in range(env.num_buttons):
-                keys.append(movie.get_key(i, p))
+                keys.append(movie.get_key(i, player))
         env.step(keys)
 
         if time % 10 == 0:

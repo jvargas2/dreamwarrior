@@ -4,12 +4,15 @@ import retro
 import dreamwarrior
 
 def main():
+    """Main function.
+    """
     game = 'NightmareOnElmStreet-Nes'
     record = False
     observation_type = retro.Observations.IMAGE # can be RAM
     players = 1
 
     env = dreamwarrior.make_custom_env(
+        '../dreamwarrior/data',
         game,
         record=record,
         players=players,
