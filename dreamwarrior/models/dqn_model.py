@@ -24,6 +24,7 @@ EPS_END = 0.05
 EPS_DECAY = 200
 # TARGET_UPDATE = 10
 NUM_EPISODES = 100
+FRAME_SKIP = 4
 
 class DQN_Model():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -116,6 +117,28 @@ class DQN_Model():
 
         return loss
 
+    def select_action(self, state, steps_done):
+        # Select and perform an action
+        sample = random.random()
+        eps_threshold = EPS_END + (EPS_START - EPS_END) * \
+            math.exp(-1. * steps_done / EPS_DECAY)
+        steps_done += 1
+        
+        if sample > eps_threshold:
+            with torch.no_grad():
+                # t.max(1) will return largest column value of each row.
+                # second column on max result is index of where max element was
+                # found, so we pick action with the larger expected reward.
+                action = self.policy_net(state).max(1)[1].view(1, 1)
+        else:
+            action = torch.tensor(
+                [[random.randrange(self.n_actions)]],
+                device=self.device,
+                dtype=torch.long
+            )
+
+        return action
+
     def train(self, optimizer_state=None, start_episode=0, watching=False):
         logging.info('Starting training...')
         env = self.env
@@ -128,7 +151,7 @@ class DQN_Model():
         _, _, screen_height, screen_width = init_screen.shape
 
         # Get number of actions from gym action space
-        n_actions = env.action_space.n
+        self.n_actions = env.action_space.n
         
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
@@ -148,21 +171,13 @@ class DQN_Model():
             last_screen = self.get_screen()
             current_screen = self.get_screen()
             state = current_screen - last_screen
+            previous_action = self.select_action(state, steps_done)
+
             for t in count():
-                # Select and perform an action
-                sample = random.random()
-                eps_threshold = EPS_END + (EPS_START - EPS_END) * \
-                    math.exp(-1. * steps_done / EPS_DECAY)
-                steps_done += 1
-                
-                if sample > eps_threshold:
-                    with torch.no_grad():
-                        # t.max(1) will return largest column value of each row.
-                        # second column on max result is index of where max element was
-                        # found, so we pick action with the larger expected reward.
-                        action = self.policy_net(state).max(1)[1].view(1, 1)
+                if t % FRAME_SKIP == 0:
+                    action = self.select_action(state, steps_done)
                 else:
-                    action = torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
+                    action = previous_action
 
                 retro_action = np.zeros((9,), dtype=int)
                 retro_action[action.item()] = 1
@@ -198,8 +213,8 @@ class DQN_Model():
                 if t % 100 == 0 and len(memory) >= BATCH_SIZE:
                     logging.info('t=%d loss: %f' % (t, loss))
 
-                if t > 20:
-                    done = True
+                # if t > 20:
+                #     done = True
 
                 if done:
                     break
