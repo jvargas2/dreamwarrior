@@ -1,3 +1,4 @@
+import logging
 import math
 import random
 import numpy as np
@@ -16,7 +17,7 @@ from dreamwarrior.utils import ReplayMemory
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
-BATCH_SIZE = 10
+BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
@@ -113,7 +114,21 @@ class DQN_Model():
             param.grad.data.clamp_(-1, 1)
         optimizer.step()
 
+        return loss
+
     def train(self):
+        env = self.env
+        device = self.device
+
+        # Get screen size so that we can initialize layers correctly based on shape
+        # returned from AI gym. Typical dimensions at this point are close to ???
+        # which is the result of a clamped and down-scaled render buffer in get_screen()
+        init_screen = self.get_screen()
+        _, _, screen_height, screen_width = init_screen.shape
+
+        # Get number of actions from gym action space
+        n_actions = env.action_space.n
+        
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -121,8 +136,6 @@ class DQN_Model():
         memory = ReplayMemory(10000)
 
         steps_done = 0
-
-        episode_durations = []
 
         for i_episode in range(NUM_EPISODES):
             # Initialize the environment and state
@@ -152,7 +165,9 @@ class DQN_Model():
                 reward = torch.tensor([reward], device=device)
 
                 if reward > 0:
-                    print('t=%i got reward: %g' % (t, reward))
+                    logging.info('t=%i got reward: %g' % (t, reward))
+                elif reward < 0:
+                    logging.info('t=%i got penalty: %g' % (t, reward))
 
                 env.render()
 
@@ -171,22 +186,24 @@ class DQN_Model():
                 state = next_state
 
                 # Perform one step of the optimization (on the target network)
-                self.optimize_model(optimizer, memory, BATCH_SIZE, GAMMA)
+                loss = self.optimize_model(optimizer, memory, BATCH_SIZE, GAMMA)
 
-                if t > 50:
-                    done = True
+                if t % 100 == 0 and len(memory) >= BATCH_SIZE:
+                    logging.info('t=%d loss: %f' % (t, loss))
+
+                # if t > 200:
+                #     done = True
 
                 if done:
-                    episode_durations.append(t + 1)
                     break
             # Update the target network, copying all weights and biases in DQN
             if i_episode % TARGET_UPDATE == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
-            print('Finished episode loop')
+            logging.info('Finished episode loop')
 
         env.close()
-        print('Reached end of train function')
+        logging.info('Finished training!')
 
     def run(self):
         env = self.env
@@ -197,6 +214,7 @@ class DQN_Model():
         last_screen = self.get_screen()
         current_screen = self.get_screen()
         state = current_screen - last_screen
+        final_reward = 0
 
         for t in count():
             with torch.no_grad():
@@ -205,6 +223,7 @@ class DQN_Model():
             retro_action = np.zeros((9,), dtype=int)
             retro_action[action.item()] = 1
             _, reward, done, _ = env.step(retro_action)
+            final_reward += reward
             reward = torch.tensor([reward], device=device)
 
             if reward > 0:
@@ -221,7 +240,8 @@ class DQN_Model():
                 break
 
         env.close()
-        print('Reached end of run function')
+        logging.info('Finished run.')
+        logging.info('Final reward: %d' % final_reward)
 
     """
     For saving and loading:
@@ -231,7 +251,9 @@ class DQN_Model():
     """
     def save(self):
         torch.save(self.policy_net.state_dict(), 'test.pth')
+        logging.info('Saved model.')
 
     def load(self):
         self.policy_net.load_state_dict(torch.load('test.pth'))
         self.policy_net.eval()
+        logging.info('Loaded model.')
