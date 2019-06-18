@@ -17,13 +17,13 @@ from dreamwarrior.utils import ReplayMemory
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
-BATCH_SIZE = 128
+BATCH_SIZE = 32
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
-TARGET_UPDATE = 10
-NUM_EPISODES = 1
+# TARGET_UPDATE = 10
+NUM_EPISODES = 100
 
 class DQN_Model():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -116,7 +116,8 @@ class DQN_Model():
 
         return loss
 
-    def train(self):
+    def train(self, optimizer_state=None, start_episode=0, watching=False):
+        logging.info('Starting training...')
         env = self.env
         device = self.device
 
@@ -133,11 +134,15 @@ class DQN_Model():
         self.target_net.eval()
 
         optimizer = optim.RMSprop(self.policy_net.parameters())
+
+        if optimizer_state:
+            optimizer.load_state_dict(optimizer_state)
+
         memory = ReplayMemory(10000)
 
         steps_done = 0
 
-        for i_episode in range(NUM_EPISODES):
+        for i_episode in range(start_episode, NUM_EPISODES):
             # Initialize the environment and state
             env.reset()
             last_screen = self.get_screen()
@@ -169,7 +174,9 @@ class DQN_Model():
                 elif reward < 0:
                     logging.info('t=%i got penalty: %g' % (t, reward))
 
-                env.render()
+                
+                if watching:
+                    env.render()
 
                 # Observe new state
                 last_screen = current_screen
@@ -191,16 +198,17 @@ class DQN_Model():
                 if t % 100 == 0 and len(memory) >= BATCH_SIZE:
                     logging.info('t=%d loss: %f' % (t, loss))
 
-                # if t > 200:
-                #     done = True
+                if t > 20:
+                    done = True
 
                 if done:
                     break
             # Update the target network, copying all weights and biases in DQN
-            if i_episode % TARGET_UPDATE == 0:
-                self.target_net.load_state_dict(self.policy_net.state_dict())
+            # if i_episode % TARGET_UPDATE == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
 
-            logging.info('Finished episode loop')
+            logging.info('Finished episode ' + str(i_episode))
+            self.training_save(i_episode, optimizer)
 
         env.close()
         logging.info('Finished training!')
@@ -253,7 +261,25 @@ class DQN_Model():
         torch.save(self.policy_net.state_dict(), 'test.pth')
         logging.info('Saved model.')
 
-    def load(self):
-        self.policy_net.load_state_dict(torch.load('test.pth'))
+    def load(self, path='test.pth'):
+        self.policy_net.load_state_dict(torch.load(path, map_location=self.device))
         self.policy_net.eval()
         logging.info('Loaded model.')
+
+    def training_save(self, episode, optimizer):
+        filepath = 'latest.pth'
+        state = {
+            'episode': episode,
+            'state_dict': self.policy_net.state_dict(),
+            'optimizer': optimizer.state_dict(),
+        }
+        torch.save(state, filepath)
+        logging.info('Saved training at episode %d.' % episode)
+
+    def continue_training(self, filepath):
+        state = torch.load(filepath, map_location=self.device)
+        episode = state['episode'] + 1
+
+        self.policy_net.load_state_dict(state['state_dict'])
+        logging.info('Continuing training at episode %d...' % episode)
+        self.train(optimizer_state=state['optimizer'], start_episode=episode)

@@ -24,6 +24,7 @@ def make_custom_env(game, state=State.DEFAULT, **kwargs):
         inttype=integrations,
         **kwargs
     )
+    
     return env
 
 # Movies
@@ -38,7 +39,6 @@ def play_movie(bk2_path):
     movie = retro.Movie(bk2_path)
 
     env = make_custom_env(
-        path=data_path(),
         game=movie.get_game(),
         state=None,
         use_restricted_actions=retro.Actions.ALL,
