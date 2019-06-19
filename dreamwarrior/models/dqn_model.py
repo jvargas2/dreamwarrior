@@ -177,6 +177,7 @@ class DQN_Model():
             for t in count():
                 if t % FRAME_SKIP == 0:
                     action = self.select_action(state, steps_done)
+                    previous_action = action
                 else:
                     action = previous_action
 
