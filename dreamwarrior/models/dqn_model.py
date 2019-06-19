@@ -22,7 +22,6 @@ GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
-# TARGET_UPDATE = 10
 NUM_EPISODES = 100
 FRAME_SKIP = 4
 
@@ -164,10 +163,12 @@ class DQN_Model():
         memory = ReplayMemory(10000)
 
         steps_done = 0
+        episode_rewards = []
 
         for i_episode in range(start_episode, NUM_EPISODES):
             # Initialize the environment and state
             env.reset()
+            episode_reward = 0
             last_screen = self.get_screen()
             current_screen = self.get_screen()
             state = current_screen - last_screen
@@ -182,13 +183,14 @@ class DQN_Model():
                 retro_action = np.zeros((9,), dtype=int)
                 retro_action[action.item()] = 1
                 _, reward, done, _ = env.step(retro_action)
-                reward = torch.tensor([reward], device=device)
+                episode_reward += reward
 
                 if reward > 0:
                     logging.info('t=%i got reward: %g' % (t, reward))
                 elif reward < 0:
                     logging.info('t=%i got penalty: %g' % (t, reward))
 
+                reward = torch.tensor([reward], device=device)
                 
                 if watching:
                     env.render()
@@ -210,10 +212,10 @@ class DQN_Model():
                 # Perform one step of the optimization (on the target network)
                 loss = self.optimize_model(optimizer, memory, BATCH_SIZE, GAMMA)
 
-                if t % 100 == 0 and len(memory) >= BATCH_SIZE:
+                if t % 1000 == 0 and len(memory) >= BATCH_SIZE:
                     logging.info('t=%d loss: %f' % (t, loss))
 
-                # if t > 20:
+                # if t > 5:
                 #     done = True
 
                 if done:
@@ -223,10 +225,13 @@ class DQN_Model():
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
             logging.info('Finished episode ' + str(i_episode))
+            logging.info('Final reward: %d' % episode_reward)
+            episode_rewards.append(episode_reward)
             self.training_save(i_episode, optimizer)
 
         env.close()
-        logging.info('Finished training!')
+        logging.info('Finished training! Final rewards per episode:')
+        logging.info(episode_rewards)
 
     def run(self):
         env = self.env
