@@ -1,1 +1,1 @@
-from .dqn_model import DQN_Model
+from .dqn import DQN
