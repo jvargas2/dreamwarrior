@@ -41,6 +41,19 @@ class DQNAgent:
 
         return action
 
+    def load_policy_net(self, state_dict):
+        self.policy_net.load_state_dict(state_dict)
+
+    def update_target_net(self):
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+
+    def start_target_net(self):
+        self.update_target_net()
+        self.target_net.eval()
+
+    def get_state_dict(self):
+        return self.policy_net.state_dict()
+
     def optimize_model(self, optimizer, memory, BATCH_SIZE, GAMMA):
         """Optimize the model.
         """

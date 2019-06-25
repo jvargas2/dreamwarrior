@@ -84,20 +84,15 @@ class DQNTrainer():
         env = self.env
         device = self.device
 
-        # Get screen size so that we can initialize layers correctly based on shape
-        # returned from AI gym. Typical dimensions at this point are close to ???
-        # which is the result of a clamped and down-scaled render buffer in get_screen()
         init_screen = self.get_screen()
         _, _, screen_height, screen_width = init_screen.shape
 
         # Get number of actions from gym action space
         self.n_actions = env.action_space.n
         
-        # TODO Add functions to DQNAgent for the following
-        self.agent.target_net.load_state_dict(self.agent.policy_net.state_dict())
-        self.agent.target_net.eval()
-        optimizer = optim.RMSprop(self.agent.policy_net.parameters())
+        self.agent.start_target_net()
 
+        optimizer = optim.RMSprop(self.agent.policy_net.parameters())
         if optimizer_state:
             optimizer.load_state_dict(optimizer_state)
 
@@ -157,20 +152,34 @@ class DQNTrainer():
                 if t % 1000 == 0 and len(memory) >= BATCH_SIZE:
                     logging.info('t=%d loss: %f' % (t, loss))
 
-                # if t > 5:
-                #     done = True
-
                 if done:
                     break
             # Update the target network, copying all weights and biases in DQN
-            # if i_episode % TARGET_UPDATE == 0:
-            self.target_net.load_state_dict(self.policy_net.state_dict())
+            self.agent.update_target_net()
 
             logging.info('Finished episode ' + str(i_episode))
             logging.info('Final reward: %d' % episode_reward)
             episode_rewards.append(episode_reward)
-            self.training_save(i_episode, optimizer)
+            self.save_progress(i_episode, optimizer)
 
+        self.agent.save()
         env.close()
         logging.info('Finished training! Final rewards per episode:')
         logging.info(episode_rewards)
+
+    def save_progress(self, episode, optimizer):
+        state = {
+            'episode': episode,
+            'optimizer': optimizer.state_dict(),
+            'model': self.agent.get_state_dict()
+        }
+        torch.save(state, 'training_progress.pth')
+        logging.info('Saved training after finishing episode %d.' % episode)
+
+    def continue_training(self, filepath, watching=False):
+        state = torch.load(filepath, map_location=self.device)
+        episode = state['episode'] + 1
+
+        self.agent.load_policy_net(state['model'])
+        logging.info('Continuing training at episode %d...' % episode)
+        self.train(optimizer_state=state['optimizer'], start_episode=episode, watching=watching)

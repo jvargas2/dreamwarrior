@@ -15,7 +15,10 @@ def train(args):
 
     if args.model == 'dqn':
         trainer = DQNTrainer(env)
-        trainer.train(watching=args.watching)
+        if args.continue_file:
+            trainer.continue_training(args.continue_file, args.watching)
+        else:
+            trainer.train(watching=args.watching)
 
 def run(args):
     env = dreamwarrior.make_custom_env('NightmareOnElmStreet-Nes')
@@ -38,6 +41,7 @@ def main():
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
     parser_train.add_argument('-m', '--model', choices=['dqn'], default='dqn', help='Type of model to use for agent.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
+    parser_train.add_argument('-c', '--continue_file', help='.pth path when continuing training.')
     parser_train.set_defaults(func=train)
 
     # run arguments
