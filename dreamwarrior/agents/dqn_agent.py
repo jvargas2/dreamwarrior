@@ -16,9 +16,12 @@ class DQNAgent:
     policy_net = None
     target_net = None
 
-    def __init__(self, env, screen_height, screen_width):
+    def __init__(self, env):
         self.env = env
         self.n_actions = env.action_space.n
+
+        init_screen = env.get_state()
+        _, _, screen_height, screen_width = init_screen.shape
 
         self.policy_net = DQN(screen_height, screen_width, self.n_actions).to(self.device)
         self.target_net = DQN(screen_height, screen_width, self.n_actions).to(self.device)
@@ -54,12 +57,13 @@ class DQNAgent:
     def get_state_dict(self):
         return self.policy_net.state_dict()
 
-    def optimize_model(self, optimizer, memory, BATCH_SIZE, GAMMA):
+    def optimize_model(self, optimizer, memory, GAMMA):
         """Optimize the model.
         """
-        if len(memory) < BATCH_SIZE:
+        if len(memory) < memory.batch_size:
             return
-        transitions = memory.sample(BATCH_SIZE)
+        transitions = memory.sample()
+        
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
         # detailed explanation). This converts batch-array of Transitions
         # to Transition of batch-arrays.
@@ -85,7 +89,7 @@ class DQNAgent:
         # on the "older" target_net; selecting their best reward with max(1)[0].
         # This is merged based on the mask, such that we'll have either the expected
         # state value or 0 in case the state was final.
-        next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
+        next_state_values = torch.zeros(memory.batch_size, device=self.device)
         next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch

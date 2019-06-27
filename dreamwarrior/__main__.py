@@ -4,30 +4,50 @@ For the package's command line commands.
 import argparse
 import logging
 
+import retro
+
 import dreamwarrior
+from dreamwarrior import DreamEnv
 from dreamwarrior.trainers import DQNTrainer
 from dreamwarrior.runners import Runner
 
-import sys # TODO Remove
-
 def train(args):
-    env = dreamwarrior.make_custom_env('NightmareOnElmStreet-Nes', record=True)
+    env = DreamEnv('NightmareOnElmStreet-Nes', watching=args.watching, record=True)
 
     if args.model == 'dqn':
         trainer = DQNTrainer(env)
         if args.continue_file:
             trainer.continue_training(args.continue_file, args.watching)
         else:
-            trainer.train(watching=args.watching)
+            trainer.train()
 
 def run(args):
-    env = dreamwarrior.make_custom_env('NightmareOnElmStreet-Nes')
-    
+    env = DreamEnv('NightmareOnElmStreet-Nes', watching=True)
+
     runner = Runner(env, args.agent)
     runner.run()
 
-def movie(args):
-    dreamwarrior.play_movie(args.filename)
+def play_movie(args):
+    movie = retro.Movie(args.filename)
+
+    env = DreamEnv(
+        game=movie.get_game(),
+        state=None,
+        use_restricted_actions=retro.Actions.ALL,
+        players=movie.players
+    )
+
+    env.initial_state = movie.get_state()
+    env.reset()
+    env.render()
+
+    while movie.step():
+        keys = []
+        for p in range(movie.players):
+            for i in range(env.num_buttons):
+                keys.append(movie.get_key(i, p))
+        env.step(keys)
+        env.render()
 
 def main():
     """Main function for parsing command line arguments.
@@ -52,7 +72,7 @@ def main():
     # Movie arguments
     parser_movie = subparsers.add_parser('movie', help='Play a recording.')
     parser_movie.add_argument('filename', help='Path to .bk2 file') # TODO Make this required
-    parser_movie.set_defaults(func=movie)
+    parser_movie.set_defaults(func=play_movie)
 
     # Parse initial args
     args = parser.parse_args()

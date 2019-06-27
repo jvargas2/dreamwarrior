@@ -33,37 +33,7 @@ class DQNTrainer():
 
     def __init__(self, env):
         self.env = env
-        n_actions = env.action_space.n
-
-        init_screen = self.get_screen()
-        _, _, screen_height, screen_width = init_screen.shape
-
-        self.agent = DQNAgent(env, screen_height, screen_width)
-
-    def get_screen(self):
-        """Get retro env render as a torch tensor.
-
-        Returns: A torch tensor made from the RGB pixels
-        """
-        env = self.env
-
-        # Transpose it into torch order (CHW).
-        screen = env.render(mode='rgb_array').transpose((2, 0, 1))
-
-        # Convert to float, rescale, convert to torch tensor
-        # (this doesn't require a copy)
-        screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
-        screen = torch.from_numpy(screen)
-
-        # Resize, and add a batch dimension (BCHW)
-        transforms.Compose([
-            screen,
-            transforms.ToPILImage(),
-            transforms.Resize(40, interpolation=Image.CUBIC),
-            transforms.ToTensor()
-        ])
-
-        return screen.unsqueeze(0).to(self.device)
+        self.agent = DQNAgent(env)
 
     def training_select_action(self, state, steps_done):
         # Select and perform an action
@@ -79,16 +49,10 @@ class DQNTrainer():
 
         return action
 
-    def train(self, optimizer_state=None, start_episode=0, watching=False):
+    def train(self, optimizer_state=None, start_episode=0):
         logging.info('Starting training...')
         env = self.env
         device = self.device
-
-        init_screen = self.get_screen()
-        _, _, screen_height, screen_width = init_screen.shape
-
-        # Get number of actions from gym action space
-        self.n_actions = env.action_space.n
         
         self.agent.start_target_net()
 
@@ -103,42 +67,22 @@ class DQNTrainer():
 
         for i_episode in range(start_episode, NUM_EPISODES):
             # Initialize the environment and state
-            env.reset()
             episode_reward = 0
-            last_screen = self.get_screen()
-            current_screen = self.get_screen()
-            state = current_screen - last_screen
-            previous_action = self.training_select_action(state, steps_done)
+
+            env.reset()
+            state = env.get_state()
 
             for t in count():
-                if t % FRAME_SKIP == 0:
-                    action = self.training_select_action(state, steps_done)
-                    previous_action = action
-                else:
-                    action = previous_action
+                action = self.training_select_action(state, steps_done)
 
-                retro_action = np.zeros((9,), dtype=int)
-                retro_action[action.item()] = 1
-                _, reward, done, _ = env.step(retro_action)
+                next_state, reward, done, _ = env.step(action)
                 episode_reward += reward
+                reward = torch.tensor([reward], device=device)
 
                 if reward > 0:
                     logging.info('t=%i got reward: %g' % (t, reward))
                 elif reward < 0:
                     logging.info('t=%i got penalty: %g' % (t, reward))
-
-                reward = torch.tensor([reward], device=device)
-                
-                if watching:
-                    env.render()
-
-                # Observe new state
-                last_screen = current_screen
-                current_screen = self.get_screen()
-                if not done:
-                    next_state = current_screen - last_screen
-                else:
-                    next_state = None
 
                 # Store the transition in memory
                 memory.push(state, action, next_state, reward)
@@ -147,13 +91,14 @@ class DQNTrainer():
                 state = next_state
 
                 # Perform one step of the optimization (on the target network)
-                loss = self.agent.optimize_model(optimizer, memory, BATCH_SIZE, GAMMA)
+                loss = self.agent.optimize_model(optimizer, memory, GAMMA)
 
-                if t % 1000 == 0 and len(memory) >= BATCH_SIZE:
+                if t % 1000 == 0 and loss is not None:
                     logging.info('t=%d loss: %f' % (t, loss))
 
                 if done:
                     break
+
             # Update the target network, copying all weights and biases in DQN
             self.agent.update_target_net()
 
