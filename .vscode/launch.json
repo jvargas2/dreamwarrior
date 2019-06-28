@@ -5,6 +5,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
         {
             "name": "DQN Train",
             "type": "python",
@@ -18,25 +19,32 @@
             "request": "launch",
             "module": "dreamwarrior",
             "args": ["-p", "run", "-a", "~/repos/dreamwarrior/examples/pine.pth"]
+        },
+        {
+            "name": "Rainbow Train",
+            "type": "python",
+            "request": "launch",
+            "program": "/Users/jorgevargas/repos/dreamwarrior/dreamwarrior/trainers/rainbow_trainer.py",
+            "console": "integratedTerminal",
+            "args": {
+                "--target-update": 2000,
+                "--T-max": 100000,
+                "--learn-start": 1600,
+                "--memory-capacity": 100000,
+                "--replay-frequency": 1,
+                "--multi-step": 20,
+                "--architecture": data-efficient,
+                "--hidden-size": 256,
+                "--learning-rate": 0.0001,
+                "--evaluation-interval": 10000
+            }
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
         }
-        // {
-        //     "name": "Python: Current File",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "${file}",
-        //     "console": "integratedTerminal",
-        //     "args": {
-        //         "--target-update": 2000,
-        //         "--T-max": 100000,
-        //         "--learn-start": 1600,
-        //         "--memory-capacity": 100000,
-        //         "--replay-frequency": 1,
-        //         "--multi-step": 20,
-        //         "--architecture": data-efficient,
-        //         "--hidden-size": 256,
-        //         "--learning-rate": 0.0001,
-        //         "--evaluation-interval": 10000
-        //     }
-        // }
     ]
 }

@@ -31,7 +31,7 @@ class DreamEnv(RetroEnv):
         super().__init__(game, inttype=inttype, **kwargs)
 
         self.watching = watching
-        self.state_buffer = deque([], maxlen=int(108e3))
+        self.state_buffer = deque([], maxlen=4)
 
     def get_state(self):
         """Get retro env render as a torch tensor.
@@ -57,29 +57,42 @@ class DreamEnv(RetroEnv):
         return screen.unsqueeze(0).to(self.device)
 
     def step(self, action):
-        frame_buffer = torch.zeros(2, 224, 240, device=self.device)
-        reward, done, info = 0, False, None
+        # Repeat action 4 times, max pool over last 2 frames
+        init_screen = self.get_state()
+        _, _, screen_height, screen_width = init_screen.shape
+        frame_buffer = torch.zeros(2, 3, screen_height, screen_width, device=self.device)
+
+        total_reward, done, info = 0, False, None
+        retro_action = np.zeros((9,), dtype=int)
+        retro_action[action] = 1
 
         for t in range(4):
-            retro_action = np.zeros((9,), dtype=int)
-            retro_action[action.item()] = 1
             _, reward, done, info = super().step(retro_action)
+            total_reward += reward
 
             if self.watching:
                 super().render()
 
             if t == 2:
-                # frame_buffer[0] = self.get_state()
-                penultimate_state = self.get_state()
+                frame_buffer[0] = self.get_state()
             elif t == 3:
-                # frame_buffer[1] = self.get_state()
-                ultimate_state = self.get_state()
+                frame_buffer[1] = self.get_state()
 
             if done:
                 break
 
-        # observation = frame_buffer.max(0)[0]
-        state = ultimate_state - penultimate_state
+        state = frame_buffer.max(0)[0]
         self.state_buffer.append(state)
 
-        return state, reward, done, info
+        return self.get_state(), total_reward, done, info
+
+    def rainbow_step(self, action):
+        # Return stack of state buffer instead of frames max pool
+        _, reward, done, info = self.step(action)
+        return torch.stack(list(self.state_buffer), 0), reward, done
+
+    def rainbow_reset(self):
+        super().reset()
+        state = self.get_state()[0]
+        self.state_buffer.append(state)
+        return torch.stack(list(self.state_buffer), 0)
