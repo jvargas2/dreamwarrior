@@ -1,5 +1,7 @@
 # Dream Warrior
 *.pth
+.vscode/
+debug/
 
 # macOS
 .DS_Store
