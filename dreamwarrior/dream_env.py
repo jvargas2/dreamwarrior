@@ -13,6 +13,8 @@ from torchvision import transforms
 import retro
 from retro import RetroEnv
 
+HISTORY_LENGTH = 4
+
 class DreamEnv(RetroEnv):
     """DreamEnv is a child of the Gym Retro RetroEnv class. This class add a custom path for the
     games and a few functions to make training/playing easier.
@@ -54,12 +56,13 @@ class DreamEnv(RetroEnv):
             transforms.ToTensor()
         ])
 
-        return screen.unsqueeze(0).to(self.device)
+        # return screen.unsqueeze(0).to(self.device)
+        return screen.to(self.device)
 
     def step(self, action):
         # Repeat action 4 times, max pool over last 2 frames
         init_screen = self.get_state()
-        _, _, screen_height, screen_width = init_screen.shape
+        _, screen_height, screen_width = init_screen.shape
         frame_buffer = torch.zeros(2, 3, screen_height, screen_width, device=self.device)
 
         total_reward, done, info = 0, False, None
@@ -91,8 +94,14 @@ class DreamEnv(RetroEnv):
         _, reward, done, info = self.step(action)
         return torch.stack(list(self.state_buffer), 0), reward, done
 
+    def _reset_buffer(self):
+        for _ in range(HISTORY_LENGTH):
+            self.state_buffer.append(torch.zeros(3, 224, 240, device=self.device))
+
     def rainbow_reset(self):
+        self._reset_buffer()
         super().reset()
         state = self.get_state()[0]
-        self.state_buffer.append(state)
+        # for _ in range(4):
+        #     self.state_buffer.append(state)
         return torch.stack(list(self.state_buffer), 0)

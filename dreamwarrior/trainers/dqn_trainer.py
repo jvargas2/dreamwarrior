@@ -1,4 +1,3 @@
-import argparse
 import logging
 import math
 import random
@@ -20,13 +19,18 @@ Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'
 
 BATCH_SIZE = 32
 GAMMA = 0.999
-EPS_START = 0.9
-EPS_END = 0.05
-EPS_DECAY = 200
-NUM_EPISODES = 100
+# NUM_EPISODES = 100
+FRAME_LIMIT = int(1e7) # 10 million
 FRAME_SKIP = 4
+LEARNING_RATE = 0.00001
+MEMORY_SIZE = int(1e6) # 1 million
 
-class DQNTrainer():
+# Epsilon
+EPSILON_START = 1.0
+EPSILON_END = 0.1
+EPSILON_DECAY = int(5e4)
+
+class DQNTrainer:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     env = None
     agent = None
@@ -35,12 +39,11 @@ class DQNTrainer():
         self.env = env
         self.agent = DQNAgent(env)
 
-    def training_select_action(self, state, steps_done):
+    def training_select_action(self, state, frame_count):
         # Select and perform an action
         sample = random.random()
-        eps_threshold = EPS_END + (EPS_START - EPS_END) * \
-            math.exp(-1. * steps_done / EPS_DECAY)
-        steps_done += 1
+        eps_threshold = EPSILON_END + (EPSILON_START - EPSILON_END) * \
+            math.exp(-1. * frame_count / EPSILON_DECAY)
         
         if sample > eps_threshold:
             action = self.agent.select_action(state)
@@ -49,35 +52,31 @@ class DQNTrainer():
 
         return action
 
-    def train(self, optimizer_state=None, start_episode=0):
+    def train(self, optimizer_state=None, episode=1):
         logging.info('Starting training...')
         env = self.env
         device = self.device
         
-        self.agent.start_target_net()
+        optimizer = optim.RMSprop(self.agent.get_parameters())
+        memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE)
 
-        optimizer = optim.RMSprop(self.agent.policy_net.parameters())
-        if optimizer_state:
-            optimizer.load_state_dict(optimizer_state)
-
-        memory = ReplayMemory(10000)
-
-        steps_done = 0
+        frame_count = 0
         episode_rewards = []
 
-        for i_episode in range(start_episode, NUM_EPISODES):
-            # Initialize the environment and state
+        # for i_episode in range(start_episode, NUM_FRAME):
+        while frame_count < FRAME_LIMIT:
             episode_reward = 0
 
             env.reset()
+            frame_count += 1
             state = env.get_state()
 
             for t in count():
-                action = self.training_select_action(state, steps_done)
+                action = self.training_select_action(state, frame_count)
 
                 next_state, reward, done, _ = env.step(action)
+                frame_count += 4
                 episode_reward += reward
-                reward = torch.tensor([reward], device=device)
 
                 if reward > 0:
                     logging.info('t=%i got reward: %g' % (t, reward))
@@ -85,7 +84,7 @@ class DQNTrainer():
                     logging.info('t=%i got penalty: %g' % (t, reward))
 
                 # Store the transition in memory
-                memory.push(state, action, next_state, reward)
+                memory.push(state, action, reward, next_state, done)
 
                 # Move to the next state
                 state = next_state
@@ -99,13 +98,11 @@ class DQNTrainer():
                 if done:
                     break
 
-            # Update the target network, copying all weights and biases in DQN
-            self.agent.update_target_net()
-
-            logging.info('Finished episode ' + str(i_episode))
+            logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)
+            episode += 1
             episode_rewards.append(episode_reward)
-            self.save_progress(i_episode, optimizer)
+            self.save_progress(episode, optimizer)
 
         self.agent.save()
         env.close()
@@ -123,8 +120,8 @@ class DQNTrainer():
 
     def continue_training(self, filepath, watching=False):
         state = torch.load(filepath, map_location=self.device)
-        episode = state['episode'] + 1
+        episode = state['episode']
 
-        self.agent.load_policy_net(state['model'])
+        self.agent.load_state_dict(state['model'])
         logging.info('Continuing training at episode %d...' % episode)
-        self.train(optimizer_state=state['optimizer'], start_episode=episode, watching=watching)
+        self.train(optimizer_state=state['optimizer'], episode=episode, watching=watching)
