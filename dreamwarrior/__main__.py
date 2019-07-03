@@ -3,12 +3,14 @@ For the package's command line commands.
 """
 import argparse
 import logging
+import time
+from datetime import datetime
 
 import retro
 
 import dreamwarrior
 from dreamwarrior import DreamEnv
-from dreamwarrior.trainers import DQNTrainer
+from dreamwarrior.trainers import DQNTrainer, RainbowTrainer
 from dreamwarrior.runners import Runner
 
 def train(args):
@@ -20,6 +22,9 @@ def train(args):
             trainer.continue_training(args.continue_file, args.watching)
         else:
             trainer.train()
+    elif args.model == 'rainbow':
+        trainer = RainbowTrainer(env)
+        trainer.train()
 
 def run(args):
     env = DreamEnv('NightmareOnElmStreet-Nes', watching=True)
@@ -59,7 +64,7 @@ def main():
 
     # Train arguments
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
-    parser_train.add_argument('-m', '--model', choices=['dqn'], default='dqn', help='Type of model to use for agent.')
+    parser_train.add_argument('-m', '--model', choices=['dqn', 'rainbow'], default='dqn', help='Type of model to use for agent.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
     parser_train.add_argument('-c', '--continue_file', help='.pth path when continuing training.')
     parser_train.set_defaults(func=train)
@@ -78,13 +83,28 @@ def main():
     args = parser.parse_args()
 
     # Logging
-    logging.basicConfig(filename='dreamwarrior.log', level=logging.INFO)
-
+    logging.basicConfig(filename='dreamwarrior.log', format='%(asctime)-15s: %(message)s', level=logging.INFO)
     if args.print_logs:
         logging.getLogger().addHandler(logging.StreamHandler())
+    start_time = time.time()
+    current_time = datetime.fromtimestamp(start_time).strftime('%Y_%m_%d_%H.%M.%S')
+    logging.info('\nSTART TIME: ' + current_time)
 
     # Run proper function
     args.func(args)
+
+    # Calculate/print end time
+    end_time = time.time()
+    current_time = datetime.fromtimestamp(end_time).strftime('%Y_%m_%d_%H.%M.%S')
+    logging.info('END TIME: ' + current_time)
+
+    # Calculate/print time elapsed
+    seconds_elapsed = end_time - start_time
+    minutes_elapsed, seconds_elapsed = divmod(seconds_elapsed, 60)
+    hours_elapsed, minutes_elapsed = divmod(minutes_elapsed, 60)
+
+    logging.info('H:M:S ELAPSED: %d:%d:%d' % (hours_elapsed, minutes_elapsed, seconds_elapsed))
+
 
 if __name__ == '__main__':
     main()

@@ -19,7 +19,6 @@ Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'
 
 BATCH_SIZE = 32
 GAMMA = 0.999
-# NUM_EPISODES = 100
 FRAME_LIMIT = int(1e7) # 10 million
 FRAME_SKIP = 4
 LEARNING_RATE = 0.00001
@@ -57,7 +56,10 @@ class DQNTrainer:
         env = self.env
         device = self.device
         
-        optimizer = optim.RMSprop(self.agent.get_parameters())
+        optimizer = optim.RMSprop(self.agent.get_parameters(), lr=0.00001)
+        if optimizer_state is not None:
+            optimizer.load_state_dict(optimizer_state)
+
         memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE)
 
         frame_count = 0
@@ -95,7 +97,7 @@ class DQNTrainer:
                 if t % 1000 == 0 and loss is not None:
                     logging.info('t=%d loss: %f' % (t, loss))
 
-                if done:
+                if done or frame_count >= FRAME_LIMIT:
                     break
 
             logging.info('Finished episode ' + str(episode))

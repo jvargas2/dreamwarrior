@@ -10,6 +10,7 @@ import torch
 #                         ('state', 'action', 'next_state', 'reward'))
 
 class ReplayMemory(object):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     buffer = None
     batch_size = 0
     # capacity = 0
@@ -42,9 +43,9 @@ class ReplayMemory(object):
 
         state = torch.stack(state)
         action = torch.stack(action)
-        reward = torch.tensor(reward, dtype=torch.float).reshape(-1, 1)
+        reward = torch.tensor(reward, dtype=torch.float, device=self.device).reshape(-1, 1)
         next_state = torch.stack(next_state)
-        done = torch.tensor(done, dtype=torch.float).reshape(-1, 1)
+        done = torch.tensor(done, dtype=torch.float, device=self.device).reshape(-1, 1)
 
         return state, action, reward, next_state, done
 
