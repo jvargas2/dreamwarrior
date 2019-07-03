@@ -20,7 +20,7 @@ def train(args):
     if args.model == 'dqn':
         trainer = DQNTrainer(env)
         if args.continue_file:
-            trainer.continue_training(args.continue_file, args.watching)
+            trainer.continue_training(args.continue_file)
         else:
             trainer.train()
     # elif args.model == 'rainbow':
