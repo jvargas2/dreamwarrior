@@ -21,9 +21,6 @@ class ReplayMemory(object):
     def __init__(self, capacity, batch_size):
         self.buffer = deque(maxlen=capacity)
         self.batch_size = batch_size
-        # self.capacity = capacity
-        # self.memory = []
-        # self.position = 0
 
     def push(self, state, action, reward, next_state, done):
         """Saves a transition."""
@@ -34,7 +31,7 @@ class ReplayMemory(object):
         state, action, reward, next_state, done = zip(*sample)
 
         state = torch.stack(state)
-        action = torch.tensor(action).unsqueeze(1)
+        action = torch.tensor(action, device=self.device).unsqueeze(1)
         reward = torch.tensor(reward, dtype=torch.float, device=self.device).reshape(-1, 1)
         next_state = torch.stack(next_state)
         done = torch.tensor(done, dtype=torch.float, device=self.device).reshape(-1, 1)
