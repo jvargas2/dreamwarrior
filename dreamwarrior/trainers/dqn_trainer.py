@@ -17,6 +17,7 @@ from dreamwarrior.memory import ReplayMemory
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
+LEARNING_RATE = 0.0000625
 BATCH_SIZE = 32
 GAMMA = 0.999
 FRAME_LIMIT = int(1e7) # 10 million
@@ -56,7 +57,7 @@ class DQNTrainer:
         env = self.env
         device = self.device
         
-        optimizer = optim.RMSprop(self.agent.get_parameters(), lr=0.00001)
+        optimizer = optim.RMSprop(self.agent.get_parameters(), lr=LEARNING_RATE)
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
@@ -97,11 +98,16 @@ class DQNTrainer:
                 if t % 1000 == 0 and loss is not None:
                     logging.info('t=%d loss: %f' % (t, loss))
 
-                if done or frame_count >= FRAME_LIMIT:
+                if True or done or frame_count >= FRAME_LIMIT:
                     break
 
             logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)
+            logging.info('Training Progress: %dk/%dk (%f%%)' % (
+                frame_count / 1000,
+                FRAME_LIMIT / 1000,
+                frame_count / FRAME_LIMIT
+            ))
             episode += 1
             episode_rewards.append(episode_reward)
             self.save_progress(episode, optimizer)
@@ -118,7 +124,7 @@ class DQNTrainer:
             'model': self.agent.get_state_dict()
         }
         torch.save(state, 'training_progress.pth')
-        logging.info('Saved training after finishing episode %d.' % episode)
+        logging.info('Saved training after finishing episode %s.' % str(episode - 1))
 
     def continue_training(self, filepath, watching=False):
         state = torch.load(filepath, map_location=self.device)

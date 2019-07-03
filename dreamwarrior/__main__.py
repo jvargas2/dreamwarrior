@@ -52,8 +52,11 @@ def play_movie(args):
         for p in range(movie.players):
             for i in range(env.num_buttons):
                 keys.append(movie.get_key(i, p))
-        env.step(keys)
+        _, _, done, _ = env.step(keys)
         env.render()
+
+        if done:
+            break
 
 def main():
     """Main function for parsing command line arguments.

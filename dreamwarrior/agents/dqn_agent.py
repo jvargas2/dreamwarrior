@@ -56,7 +56,6 @@ class DQNAgent:
         next_q_value = next_q_values.max(1)[0].unsqueeze(1)
         expected_q_value = reward + gamma * next_q_value * (1 - done)
         
-        # loss = (q_value - torch.tensor(expected_q_value.data, device=self.device)).pow(2).mean()
         # Compute Huber loss
         loss = F.smooth_l1_loss(q_value, expected_q_value)
             

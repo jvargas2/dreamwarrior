@@ -31,15 +31,6 @@ class DQN(nn.Module):
         zeros = torch.zeros(1, *self.input_shape)
         return self.features(torch.autograd.Variable(zeros)).view(1, -1).size(1)
 
-    # def act(self, state, epsilon):
-    #     if random.random() > epsilon:
-    #         state   = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), volatile=True)
-    #         q_value = self.forward(state)
-    #         action  = q_value.max(1)[1].data[0]
-    #     else:
-    #         action = random.randrange(env.action_space.n)
-    #     return action
-
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
