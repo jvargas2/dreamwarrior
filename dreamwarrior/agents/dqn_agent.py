@@ -25,11 +25,13 @@ class DQNAgent:
         self.model = DQN(init_screen.shape , self.num_actions).to(self.device)
 
     def random_action(self):
-        action = torch.tensor(
-            [random.randrange(self.num_actions)],
-            device=self.device,
-            dtype=torch.long
-        )
+        # action = torch.tensor(
+        #     [random.randrange(self.num_actions)],
+        #     device=self.device,
+        #     dtype=torch.long
+        # )
+
+        action = random.randrange(self.num_actions)
 
         return action
 
@@ -39,7 +41,8 @@ class DQNAgent:
         with torch.no_grad():
             action = self.model(state).max(1)[1]
 
-        return action
+        # Return the int instead of tensor
+        return action.item()
 
     def optimize_model(self, optimizer, memory, gamma):
         """Optimize the model.

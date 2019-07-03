@@ -23,7 +23,7 @@ GAMMA = 0.999
 FRAME_LIMIT = int(1e7) # 10 million
 FRAME_SKIP = 4
 LEARNING_RATE = 0.00001
-MEMORY_SIZE = int(1e6) # 1 million
+MEMORY_SIZE = int(1e5) # 100k
 
 # Epsilon
 EPSILON_START = 1.0
@@ -69,6 +69,7 @@ class DQNTrainer:
         # for i_episode in range(start_episode, NUM_FRAME):
         while frame_count < FRAME_LIMIT:
             episode_reward = 0
+            losses = []
 
             env.reset()
             frame_count += 1
@@ -95,8 +96,12 @@ class DQNTrainer:
                 # Perform one step of the optimization (on the target network)
                 loss = self.agent.optimize_model(optimizer, memory, GAMMA)
 
-                if t % 1000 == 0 and loss is not None:
-                    logging.info('t=%d loss: %f' % (t, loss))
+                if loss is not None:
+                    losses.append(loss)
+                    if t % 1000 == 0:
+                        average_loss = sum(losses) / len(losses)
+                        logging.info('t=%d loss: %f' % (t, average_loss))
+                        losses = []
 
                 if done or frame_count >= FRAME_LIMIT:
                     break
