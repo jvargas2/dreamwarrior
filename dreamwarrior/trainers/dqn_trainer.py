@@ -98,7 +98,7 @@ class DQNTrainer:
                 if t % 1000 == 0 and loss is not None:
                     logging.info('t=%d loss: %f' % (t, loss))
 
-                if True or done or frame_count >= FRAME_LIMIT:
+                if done or frame_count >= FRAME_LIMIT:
                     break
 
             logging.info('Finished episode ' + str(episode))
