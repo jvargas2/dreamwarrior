@@ -126,10 +126,10 @@ class DQNTrainer:
         torch.save(state, 'training_progress.pth')
         logging.info('Saved training after finishing episode %s.' % str(episode - 1))
 
-    def continue_training(self, filepath, watching=False):
+    def continue_training(self, filepath):
         state = torch.load(filepath, map_location=self.device)
         episode = state['episode']
 
         self.agent.load_state_dict(state['model'])
         logging.info('Continuing training at episode %d...' % episode)
-        self.train(optimizer_state=state['optimizer'], episode=episode, watching=watching)
+        self.train(optimizer_state=state['optimizer'], episode=episode)
