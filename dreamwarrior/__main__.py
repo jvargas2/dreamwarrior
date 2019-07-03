@@ -10,7 +10,8 @@ import retro
 
 import dreamwarrior
 from dreamwarrior import DreamEnv
-from dreamwarrior.trainers import DQNTrainer, RainbowTrainer
+# from dreamwarrior.trainers import DQNTrainer, RainbowTrainer
+from dreamwarrior.trainers import DQNTrainer
 from dreamwarrior.runners import Runner
 
 def train(args):
@@ -22,9 +23,9 @@ def train(args):
             trainer.continue_training(args.continue_file, args.watching)
         else:
             trainer.train()
-    elif args.model == 'rainbow':
-        trainer = RainbowTrainer(env)
-        trainer.train()
+    # elif args.model == 'rainbow':
+    #     trainer = RainbowTrainer(env)
+    #     trainer.train()
 
 def run(args):
     env = DreamEnv('NightmareOnElmStreet-Nes', watching=True)
