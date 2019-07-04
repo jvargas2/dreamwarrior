@@ -20,10 +20,12 @@ class DreamEnv(RetroEnv):
     games and a few functions to make training/playing easier.
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    name = 'unnamed'
     watching = False
     state_buffer = None
+    episode = 1
 
-    def __init__(self, game, inttype=None, watching=False, **kwargs):
+    def __init__(self, game, name=None, inttype=None, watching=False, **kwargs):
         if inttype is None:
             data_path = os.path.dirname(os.path.realpath(__file__))
             data_path += '/data'
@@ -31,6 +33,9 @@ class DreamEnv(RetroEnv):
             inttype.add_custom_path(os.path.abspath(data_path))
 
         super().__init__(game, inttype=inttype, **kwargs)
+
+        if name is not None:
+            self.name = name
 
         self.watching = watching
         self.state_buffer = deque([], maxlen=4)
@@ -61,6 +66,38 @@ class DreamEnv(RetroEnv):
 
         # return screen.unsqueeze(0).to(self.device)
         return screen.to(self.device)
+
+    def reset(self):
+        """Mostly original code from RetroEnv. Be careful when changing.
+        """
+        if self.initial_state:
+            self.em.set_state(self.initial_state)
+        for p in range(self.players):
+            self.em.set_button_mask(np.zeros([self.num_buttons], np.uint8), p)
+        self.em.step()
+        if self.movie_path is not None:
+            # rel_statename = os.path.splitext(os.path.basename(self.statename))[0]
+            # self.record_movie(os.path.join(self.movie_path, '%s-%s-%06d.bk2' % (self.gamename, rel_statename, self.movie_id)))
+            movie_path = os.path.join(self.movie_path, '%s-recordings' % self.name)
+
+            if not os.path.exists(movie_path):
+                os.makedirs(movie_path)
+
+            self.record_movie(os.path.join(
+                movie_path,
+                '%s-%04d.bk2' % (self.name, self.episode)
+            ))
+
+            self.episode += 1
+            # self.movie_id += 1
+        if self.movie:
+            self.movie.step()
+        self.data.reset()
+        self.data.update_ram()
+        return self._update_obs()
+
+    def retro_step(self, action):
+        super().step(action)
 
     def step(self, action):
         # Repeat action 4 times, max pool over last 2 frames

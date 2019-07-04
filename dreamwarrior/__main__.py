@@ -15,7 +15,7 @@ from dreamwarrior.trainers import DQNTrainer
 from dreamwarrior.runners import Runner
 
 def train(args):
-    env = DreamEnv('NightmareOnElmStreet-Nes', watching=args.watching, record=True)
+    env = DreamEnv('NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True)
 
     if args.model == 'dqn':
         trainer = DQNTrainer(env)
@@ -35,6 +35,7 @@ def run(args):
 
 def play_movie(args):
     movie = retro.Movie(args.filename)
+    movie.step()
 
     env = DreamEnv(
         game=movie.get_game(),
@@ -45,18 +46,15 @@ def play_movie(args):
 
     env.initial_state = movie.get_state()
     env.reset()
-    env.render()
 
     while movie.step():
         keys = []
         for p in range(movie.players):
             for i in range(env.num_buttons):
                 keys.append(movie.get_key(i, p))
-        _, _, done, _ = env.step(keys)
-        env.render()
 
-        if done:
-            break
+        env.retro_step(keys)
+        env.render()
 
 def main():
     """Main function for parsing command line arguments.
@@ -70,6 +68,7 @@ def main():
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
     parser_train.add_argument('-m', '--model', choices=['dqn', 'rainbow'], default='dqn', help='Type of model to use for agent.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
+    parser_train.add_argument('-n', '--name', help='Name of model for properly naming files.')
     parser_train.add_argument('-c', '--continue_file', help='.pth path when continuing training.')
     parser_train.set_defaults(func=train)
 

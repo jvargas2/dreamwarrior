@@ -52,7 +52,7 @@ class DQNTrainer:
 
         return action
 
-    def train(self, optimizer_state=None, episode=1):
+    def train(self, frame=0, optimizer_state=None, episode=1):
         logging.info('Starting training...')
         env = self.env
         device = self.device
@@ -63,7 +63,7 @@ class DQNTrainer:
 
         memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE)
 
-        frame_count = 0
+        frame_count = frame
         episode_rewards = []
 
         # for i_episode in range(start_episode, NUM_FRAME):
@@ -103,27 +103,28 @@ class DQNTrainer:
                         logging.info('t=%d loss: %f' % (t, average_loss))
                         losses = []
 
-                if done or frame_count >= FRAME_LIMIT:
+                if done or frame_count >= FRAME_LIMIT or t > 100:
                     break
 
             logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)
-            logging.info('Training Progress: %dk/%dk (%f%%)' % (
+            logging.info('Training Progress: %dk/%dk (%.2f%%)' % (
                 frame_count / 1000,
                 FRAME_LIMIT / 1000,
-                frame_count / FRAME_LIMIT
+                (frame_count / FRAME_LIMIT) * 100
             ))
             episode += 1
             episode_rewards.append(episode_reward)
-            self.save_progress(episode, optimizer)
+            self.save_progress(frame_count, episode, optimizer)
 
         self.agent.save()
         env.close()
         logging.info('Finished training! Final rewards per episode:')
         logging.info(episode_rewards)
 
-    def save_progress(self, episode, optimizer):
+    def save_progress(self, frame, episode, optimizer):
         state = {
+            'frame': frame,
             'episode': episode,
             'optimizer': optimizer.state_dict(),
             'model': self.agent.get_state_dict()
@@ -136,5 +137,7 @@ class DQNTrainer:
         episode = state['episode']
 
         self.agent.load_state_dict(state['model'])
+        self.env.episode = episode
+
         logging.info('Continuing training at episode %d...' % episode)
-        self.train(optimizer_state=state['optimizer'], episode=episode)
+        self.train(state['frame'], state['optimizer'], episode)
