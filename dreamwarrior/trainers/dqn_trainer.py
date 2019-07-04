@@ -17,12 +17,11 @@ from dreamwarrior.memory import ReplayMemory
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
-LEARNING_RATE = 0.0000625
 BATCH_SIZE = 32
 GAMMA = 0.999
 FRAME_LIMIT = int(1e7) # 10 million
 FRAME_SKIP = 4
-LEARNING_RATE = 0.00001
+LEARNING_RATE = 0.00025 # DDQN paper
 MEMORY_SIZE = int(2e5) # 100k
 
 # Epsilon
@@ -103,7 +102,7 @@ class DQNTrainer:
                         logging.info('t=%d loss: %f' % (t, average_loss))
                         losses = []
 
-                if done or frame_count >= FRAME_LIMIT or t > 100:
+                if done or frame_count >= FRAME_LIMIT:
                     break
 
             logging.info('Finished episode ' + str(episode))
