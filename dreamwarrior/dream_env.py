@@ -45,26 +45,17 @@ class DreamEnv(RetroEnv):
 
         Returns: A torch tensor made from the RGB pixels
         """
-        # Transpose it into torch order (CHW).
-        # screen = self.render(mode='rgb_array').transpose((2, 0, 1))
         screen = self.render(mode='rgb_array')
 
-        # Convert to float, rescale, convert to torch tensor
-        # (this doesn't require a copy)
-        # screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
-        # screen = torch.from_numpy(screen)
-
-        # Resize, and add a batch dimension (BCHW)
         screen_transform = transforms.Compose([
-            # screen,
             transforms.ToPILImage(),
-            transforms.Resize(80, interpolation=Image.CUBIC),
+            transforms.Grayscale(),
+            transforms.Resize(112, interpolation=Image.CUBIC),
             transforms.ToTensor()
         ])
 
         screen = screen_transform(screen)
 
-        # return screen.unsqueeze(0).to(self.device)
         return screen.to(self.device)
 
     def reset(self):

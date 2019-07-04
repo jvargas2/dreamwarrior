@@ -23,7 +23,7 @@ GAMMA = 0.999
 FRAME_LIMIT = int(1e7) # 10 million
 FRAME_SKIP = 4
 LEARNING_RATE = 0.00001
-MEMORY_SIZE = int(1e5) # 100k
+MEMORY_SIZE = int(2e5) # 100k
 
 # Epsilon
 EPSILON_START = 1.0
