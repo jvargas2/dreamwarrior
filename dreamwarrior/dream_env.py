@@ -39,6 +39,10 @@ class DreamEnv(RetroEnv):
 
         self.watching = watching
         self.state_buffer = deque([], maxlen=4)
+        empty_state = self.get_state()
+
+        for _ in range(4):
+            self.state_buffer.append(empty_state)
 
     def get_state(self):
         """Get retro env render as a torch tensor.
@@ -57,6 +61,15 @@ class DreamEnv(RetroEnv):
         screen = screen_transform(screen)
 
         return screen.to(self.device)
+
+    def get_full_state(self):
+        """Ensures the state will contain the full four states.
+        """
+        single_state = self.get_state()
+        self.state_buffer.append(single_state)
+        full_state = torch.cat(list(self.state_buffer))
+
+        return full_state
 
     def reset(self):
         """Mostly original code from RetroEnv. Be careful when changing.
@@ -91,34 +104,25 @@ class DreamEnv(RetroEnv):
         super().step(action)
 
     def step(self, action):
-        # Repeat action 4 times, max pool over last 2 frames
-        init_screen = self.get_state()
-        _, screen_height, screen_width = init_screen.shape
-        frame_buffer = torch.zeros(2, 3, screen_height, screen_width, device=self.device)
-
         total_reward, done, info = 0, False, None
         retro_action = np.zeros((9,), dtype=int)
         retro_action[action] = 1
 
-        for t in range(4):
+        for _ in range(4):
             _, reward, done, info = super().step(retro_action)
             total_reward += reward
 
             if self.watching:
                 self.render()
 
-            if t == 2:
-                frame_buffer[0] = self.get_state()
-            elif t == 3:
-                frame_buffer[1] = self.get_state()
+            self.state_buffer.append(self.get_state())
 
             if done:
                 break
 
-        state = frame_buffer.max(0)[0]
-        self.state_buffer.append(state)
+        state = torch.cat(list(self.state_buffer))
 
-        return self.get_state(), total_reward, done, info
+        return state, total_reward, done, info
 
     def rainbow_step(self, action):
         # Return stack of state buffer instead of frames max pool

@@ -69,8 +69,7 @@ class DQNTrainer:
             losses = []
 
             env.reset()
-            frame_count += 1
-            state = env.get_state()
+            state = env.get_full_state()
 
             for t in count():
                 action = self.training_select_action(state, frame_count)
