@@ -6,17 +6,10 @@ from collections import deque
 
 import torch
 
-# Transition = namedtuple('Transition',
-#                         ('state', 'action', 'next_state', 'reward'))
-
 class ReplayMemory(object):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     buffer = None
     batch_size = 0
-    # capacity = 0
-    # memory = []
-    # position = 0
-    # batch_size = 32
 
     def __init__(self, capacity, batch_size):
         self.buffer = deque(maxlen=capacity)
