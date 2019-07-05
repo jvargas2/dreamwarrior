@@ -21,7 +21,7 @@ class DQN(nn.Module):
             nn.ReLU()
         )
 
-        self.fc = nn.Sequential(
+        self.fully_connected = nn.Sequential(
             nn.Linear(self.feature_size(), 512),
             nn.ReLU(),
             nn.Linear(512, num_actions)
@@ -34,5 +34,5 @@ class DQN(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = self.fully_connected(x)
         return x

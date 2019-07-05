@@ -10,22 +10,25 @@ import retro
 
 import dreamwarrior
 from dreamwarrior import DreamEnv
-# from dreamwarrior.trainers import DQNTrainer, RainbowTrainer
 from dreamwarrior.trainers import DQNTrainer
+from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
 from dreamwarrior.runners import Runner
 
 def train(args):
     env = DreamEnv('NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True)
+    agent = None
 
     if args.model == 'dqn':
-        trainer = DQNTrainer(env)
-        if args.continue_file:
-            trainer.continue_training(args.continue_file)
-        else:
-            trainer.train()
-    # elif args.model == 'rainbow':
-    #     trainer = RainbowTrainer(env)
-    #     trainer.train()
+        agent = DQNAgent(env)
+    elif args.model == 'ddqn':
+        agent = DoubleDQNAgent(env)
+
+    trainer = DQNTrainer(env, agent)
+
+    if args.continue_file:
+        trainer.continue_training(args.continue_file)
+    else:
+        trainer.train()
 
 def run(args):
     env = DreamEnv('NightmareOnElmStreet-Nes', watching=True)
@@ -66,7 +69,7 @@ def main():
 
     # Train arguments
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
-    parser_train.add_argument('-m', '--model', choices=['dqn', 'rainbow'], default='dqn', help='Type of model to use for agent.')
+    parser_train.add_argument('-m', '--model', choices=['dqn', 'ddqn'], default='dqn', help='Type of model to use for agent.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
     parser_train.add_argument('-n', '--name', help='Name of model for properly naming files.')
     parser_train.add_argument('-c', '--continue_file', help='.pth path when continuing training.')

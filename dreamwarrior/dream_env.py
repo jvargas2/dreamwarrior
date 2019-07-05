@@ -105,7 +105,7 @@ class DreamEnv(RetroEnv):
             total_reward += reward
 
             if self.watching:
-                super().render()
+                self.render()
 
             if t == 2:
                 frame_buffer[0] = self.get_state()

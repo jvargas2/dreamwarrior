@@ -15,8 +15,6 @@ import dreamwarrior
 from dreamwarrior.agents import DQNAgent
 from dreamwarrior.memory import ReplayMemory
 
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
-
 BATCH_SIZE = 32
 GAMMA = 0.999
 FRAME_LIMIT = int(1e7) # 10 million
@@ -34,9 +32,9 @@ class DQNTrainer:
     env = None
     agent = None
 
-    def __init__(self, env):
+    def __init__(self, env, agent):
         self.env = env
-        self.agent = DQNAgent(env)
+        self.agent = agent
 
     def training_select_action(self, state, frame_count):
         # Select and perform an action
@@ -51,7 +49,7 @@ class DQNTrainer:
 
         return action
 
-    def train(self, frame=0, optimizer_state=None, episode=1):
+    def train(self, frame=0, rewards=[], episode=1, optimizer_state=None):
         logging.info('Starting training...')
         env = self.env
         device = self.device
@@ -63,7 +61,7 @@ class DQNTrainer:
         memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE)
 
         frame_count = frame
-        episode_rewards = []
+        episode_rewards = rewards
 
         # for i_episode in range(start_episode, NUM_FRAME):
         while frame_count < FRAME_LIMIT:
@@ -104,7 +102,7 @@ class DQNTrainer:
 
                 if done or frame_count >= FRAME_LIMIT:
                     break
-
+                
             logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)
             logging.info('Training Progress: %dk/%dk (%.2f%%)' % (
@@ -114,16 +112,19 @@ class DQNTrainer:
             ))
             episode += 1
             episode_rewards.append(episode_reward)
-            self.save_progress(frame_count, episode, optimizer)
+            self.save_progress(frame_count, episode_rewards, optimizer)
 
         self.agent.save()
         env.close()
         logging.info('Finished training! Final rewards per episode:')
         logging.info(episode_rewards)
 
-    def save_progress(self, frame, episode, optimizer):
+    def save_progress(self, frame, rewards, optimizer):
+        episode = len(rewards) + 1
+
         state = {
             'frame': frame,
+            'rewards': rewards,
             'episode': episode,
             'optimizer': optimizer.state_dict(),
             'model': self.agent.get_state_dict()
@@ -139,4 +140,4 @@ class DQNTrainer:
         self.env.episode = episode
 
         logging.info('Continuing training at episode %d...' % episode)
-        self.train(state['frame'], state['optimizer'], episode)
+        self.train(state['frame'], state['rewards'], episode, state['optimizer'])
