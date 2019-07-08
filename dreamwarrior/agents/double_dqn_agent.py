@@ -7,8 +7,8 @@ from dreamwarrior.models import DQN, DuelingDQN
 class DoubleDQNAgent(DQNAgent):
     frame = 0
 
-    def __init__(self, env, model='dqn'):
-        super().__init__(env, model)
+    def __init__(self, env, model='dqn', device=None):
+        super().__init__(env, model, device)
         init_screen = env.get_full_state()
         model_class = None
 

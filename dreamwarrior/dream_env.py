@@ -19,13 +19,15 @@ class DreamEnv(RetroEnv):
     """DreamEnv is a child of the Gym Retro RetroEnv class. This class add a custom path for the
     games and a few functions to make training/playing easier.
     """
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    device = None
     name = 'unnamed'
     watching = False
     state_buffer = None
     episode = 1
 
-    def __init__(self, game, name=None, inttype=None, watching=False, **kwargs):
+    def __init__(self, game, name=None, inttype=None, watching=False, device=None, **kwargs):
+        self.device = torch.device('cpu' if device is None else device)
+
         if inttype is None:
             data_path = os.path.dirname(os.path.realpath(__file__))
             data_path += '/data'

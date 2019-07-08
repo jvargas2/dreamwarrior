@@ -7,14 +7,15 @@ import torch.nn.functional as F
 from dreamwarrior.models import DQN, DuelingDQN
 
 class DQNAgent:
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    device = None
     env = None
     num_actions = 0
 
-    def __init__(self, env, model='dqn'):
+    def __init__(self, env, model='dqn', device=None):
+        self.device = torch.device('cpu' if device is None else device)
         self.env = env
         self.num_actions = env.action_space.n
-
+       
         init_screen = env.get_full_state()
 
         if model == 'dqn' or model == 'ddqn':

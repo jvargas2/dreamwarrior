@@ -12,11 +12,12 @@ from dreamwarrior.agents import DQNAgent
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 class Runner:
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    device = None
     env = None
     player_one = None
 
-    def __init__(self, env, player_one):
+    def __init__(self, env, player_one, device=None):
+        self.device = torch.device('cpu' if device is None else device)
         self.env = env
 
         agent = DQNAgent(env)

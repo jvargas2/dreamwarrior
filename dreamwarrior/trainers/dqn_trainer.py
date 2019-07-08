@@ -28,11 +28,12 @@ EPSILON_END = 0.1
 EPSILON_DECAY = int(5e4)
 
 class DQNTrainer:
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    device = None
     env = None
     agent = None
 
-    def __init__(self, env, agent):
+    def __init__(self, env, agent, device=None):
+        self.device = torch.device('cpu' if device is None else device)
         self.env = env
         self.agent = agent
 
@@ -58,7 +59,7 @@ class DQNTrainer:
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
-        memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE)
+        memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE, device=self.device)
 
         frame_count = frame
         episode_rewards = rewards

@@ -15,18 +15,23 @@ from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
 from dreamwarrior.runners import Runner
 
 def train(args):
-    env = DreamEnv('NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True)
+    if args.cuda is None:
+        device = 'cpu'
+    else:
+        device = 'cuda:' + args.cuda
+
+    env = DreamEnv('NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True, device=device)
     model = args.model
     agent = None
 
     if model == 'dqn':
-        agent = DQNAgent(env, model)
+        agent = DQNAgent(env, model, device)
     elif model == 'ddqn':
-        agent = DoubleDQNAgent(env, model)
+        agent = DoubleDQNAgent(env, model, device)
     elif model == 'dueling-dqn':
-        agent = DoubleDQNAgent(env, model)
+        agent = DoubleDQNAgent(env, model, device)
 
-    trainer = DQNTrainer(env, agent)
+    trainer = DQNTrainer(env, agent, device)
 
     if args.continue_file:
         trainer.continue_training(args.continue_file)
@@ -68,6 +73,7 @@ def main():
     # Argparse setup
     parser = argparse.ArgumentParser(prog='dreamwarrior', description='Train and test Gym Retro agents.')
     parser.add_argument('-p', '--print_logs', action='store_true', help='Use to print logs to console.')
+    parser.add_argument('-c', '--cuda', help='Which CUDA device to use. Only supply integer.')
     subparsers = parser.add_subparsers()
 
     # Train arguments
