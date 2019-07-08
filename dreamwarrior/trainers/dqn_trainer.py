@@ -28,7 +28,7 @@ EPSILON_END = 0.1
 EPSILON_DECAY = int(5e4)
 
 class DQNTrainer:
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     env = None
     agent = None
 

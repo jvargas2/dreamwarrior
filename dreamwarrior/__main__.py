@@ -16,12 +16,15 @@ from dreamwarrior.runners import Runner
 
 def train(args):
     env = DreamEnv('NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True)
+    model = args.model
     agent = None
 
-    if args.model == 'dqn':
-        agent = DQNAgent(env)
-    elif args.model == 'ddqn':
-        agent = DoubleDQNAgent(env)
+    if model == 'dqn':
+        agent = DQNAgent(env, model)
+    elif model == 'ddqn':
+        agent = DoubleDQNAgent(env, model)
+    elif model == 'dueling-dqn':
+        agent = DoubleDQNAgent(env, model)
 
     trainer = DQNTrainer(env, agent)
 
@@ -69,7 +72,7 @@ def main():
 
     # Train arguments
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
-    parser_train.add_argument('-m', '--model', choices=['dqn', 'ddqn'], default='dqn', help='Type of model to use for agent.')
+    parser_train.add_argument('-m', '--model', choices=['dqn', 'ddqn', 'dueling-dqn'], default='dqn', help='Type of model to use for agent.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
     parser_train.add_argument('-n', '--name', help='Name of model for properly naming files.')
     parser_train.add_argument('-c', '--continue_file', help='.pth path when continuing training.')

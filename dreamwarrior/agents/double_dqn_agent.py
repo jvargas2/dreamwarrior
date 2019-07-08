@@ -1,18 +1,23 @@
 import torch
 import torch.nn.functional as F
 
-from dreamwarrior.agents import BaseAgent
-from dreamwarrior.models import DQN
+from dreamwarrior.agents import DQNAgent
+from dreamwarrior.models import DQN, DuelingDQN
 
-class DoubleDQNAgent(BaseAgent):
+class DoubleDQNAgent(DQNAgent):
     frame = 0
 
-    def __init__(self, env):
-        super().__init__(env)
+    def __init__(self, env, model='dqn'):
+        super().__init__(env, model)
         init_screen = env.get_full_state()
-        self.model = DQN(init_screen.shape, self.num_actions).to(self.device)
+        model_class = None
 
-        self.target_model = DQN(init_screen.shape, self.num_actions).to(self.device)
+        if model == 'dueling-dqn':
+            model_class = DuelingDQN
+        else:
+            model_class = DQN
+
+        self.target_model = model_class(init_screen.shape, self.num_actions).to(self.device)
         self.target_model.load_state_dict(self.model.state_dict())
 
     def optimize_model(self, optimizer, memory, gamma):

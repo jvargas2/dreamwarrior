@@ -1,2 +1,2 @@
 from .dqn import DQN
-from .rainbow import Rainbow
+from .dueling_dqn import DuelingDQN
