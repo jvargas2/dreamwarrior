@@ -7,7 +7,7 @@ from collections import deque
 import torch
 
 class ReplayMemory(object):
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
     buffer = None
     batch_size = 0
 
