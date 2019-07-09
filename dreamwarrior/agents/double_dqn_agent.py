@@ -50,7 +50,7 @@ class DoubleDQNAgent(DQNAgent):
         optimizer.step()
 
         # Update target if appropriate
-        if self.frame > 1000:
+        if self.frame > 10000:
             self.update_target()
             self.frame = 0
         else:

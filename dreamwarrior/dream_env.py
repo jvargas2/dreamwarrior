@@ -126,19 +126,6 @@ class DreamEnv(RetroEnv):
 
         return state, total_reward, done, info
 
-    def rainbow_step(self, action):
-        # Return stack of state buffer instead of frames max pool
-        _, reward, done, info = self.step(action)
-        return torch.stack(list(self.state_buffer), 0), reward, done
-
     def _reset_buffer(self):
         for _ in range(HISTORY_LENGTH):
             self.state_buffer.append(torch.zeros(3, 224, 240, device=self.device))
-
-    def rainbow_reset(self):
-        self._reset_buffer()
-        super().reset()
-        state = self.get_state()[0]
-        # for _ in range(4):
-        #     self.state_buffer.append(state)
-        return torch.stack(list(self.state_buffer), 0)

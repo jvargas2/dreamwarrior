@@ -1,5 +1,9 @@
 {
   "info": {
+    "player1_hits": {
+      "address": 266,
+      "type": "|u1"
+    },
     "player1_lives": {
       "address": 310,
       "type": ">n4"

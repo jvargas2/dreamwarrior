@@ -14,6 +14,9 @@
   },
   "reward": {
     "variables": {
+      "player1_hits": {
+        "reward": -100.0
+      },
       "player1_lives": {
         "penalty": 1000.0
       },
