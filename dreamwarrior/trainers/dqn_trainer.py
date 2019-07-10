@@ -20,7 +20,7 @@ GAMMA = 0.999
 FRAME_LIMIT = int(1e7) # 10 million
 FRAME_SKIP = 4
 LEARNING_RATE = 0.00025 # DDQN paper
-MEMORY_SIZE = int(1e5)
+MEMORY_SIZE = int(1e6) # 1 million
 
 # Epsilon
 EPSILON_START = 1.0

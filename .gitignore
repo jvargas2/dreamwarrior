@@ -2,6 +2,7 @@
 *.pth
 .vscode/
 debug/
+training/
 
 # macOS
 .DS_Store
