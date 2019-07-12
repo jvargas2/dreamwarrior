@@ -56,7 +56,7 @@ class DreamEnv(RetroEnv):
         screen_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Grayscale(),
-            transforms.Resize(80, interpolation=Image.CUBIC),
+            transforms.Resize(112, interpolation=Image.CUBIC),
             transforms.ToTensor()
         ])
 

@@ -7,7 +7,7 @@ from PIL import Image
 import torch
 from torchvision import transforms
 
-from dreamwarrior.agents import DQNAgent
+from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
@@ -20,7 +20,7 @@ class Runner:
         self.device = torch.device('cpu' if device is None else device)
         self.env = env
 
-        agent = DQNAgent(env)
+        agent = DoubleDQNAgent(env, model='dueling-dqn')
         agent.load(player_one)
         self.player_one = agent
 

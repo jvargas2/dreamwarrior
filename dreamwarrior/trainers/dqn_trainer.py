@@ -13,7 +13,7 @@ from torchvision import transforms
 
 import dreamwarrior
 from dreamwarrior.agents import DQNAgent
-from dreamwarrior.memory import ReplayMemory
+from dreamwarrior.memory import ReplayMemory, PrioritizedReplayMemory
 
 BATCH_SIZE = 32
 GAMMA = 0.999
@@ -24,7 +24,7 @@ MEMORY_SIZE = int(1e5) # 100k
 
 # Epsilon
 EPSILON_START = 1.0
-EPSILON_END = 0.1
+EPSILON_END = 0.01
 EPSILON_DECAY = int(5e4)
 
 class DQNTrainer:
@@ -59,7 +59,8 @@ class DQNTrainer:
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
-        memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE, device=self.device)
+        # memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE, device=self.device)
+        memory = PrioritizedReplayMemory(MEMORY_SIZE, BATCH_SIZE, device=self.device)
 
         frame_count = frame
         episode_rewards = rewards
@@ -91,9 +92,14 @@ class DQNTrainer:
                 state = next_state
 
                 # Perform one step of the optimization (on the target network)
-                loss = self.agent.optimize_model(optimizer, memory, GAMMA)
+                loss = None
+                if len(memory) >= memory.batch_size:
+                    loss, indices, priorities = self.agent.optimize_model(optimizer, memory, GAMMA, frame_count)
 
                 if loss is not None:
+                    # TODO Move to a better place for making prioritized memory optional
+                    memory.update_priorities(indices, priorities)
+
                     losses.append(loss)
                     if t % 1000 == 0:
                         average_loss = sum(losses) / len(losses)

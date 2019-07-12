@@ -1,1 +1,2 @@
 from .replay_memory import ReplayMemory
+from .prioritized_replay_memory import PrioritizedReplayMemory

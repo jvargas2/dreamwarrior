@@ -20,20 +20,20 @@ class DoubleDQNAgent(DQNAgent):
         self.target_model = model_class(init_screen.shape, self.num_actions).to(self.device)
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def optimize_model(self, optimizer, memory, gamma):
+    def optimize_model(self, optimizer, memory, gamma, frame):
         """Optimize the model.
         """
         if len(memory) < memory.batch_size:
             return
 
-        state, action, reward, next_state, done = memory.sample()
+        state, action, reward, next_state, done, indices, weights = memory.sample(frame)
 
         # Get Q values for every action in first and second states
         q_values = self.model(state)
         next_q_values = self.model(next_state)
         next_q_state_values = self.target_model(next_state)
 
-        # Actual action-value
+        # Actual action-value selected
         q_value = q_values.gather(1, action)
 
         # Select evaluation values from target by using the indicies of the online model max
@@ -43,10 +43,14 @@ class DoubleDQNAgent(DQNAgent):
         expected_q_value = reward + gamma * next_q_value * (1 - done)
         
         # Compute Huber loss
-        loss = F.smooth_l1_loss(q_value, expected_q_value)
+        loss = (q_value - expected_q_value.detach()).pow(2) * torch.tensor(weights).unsqueeze(1)
+        # loss = F.smooth_l1_loss(q_value, expected_q_value)
+        priorities = loss + 1e-5 # pi = |δi| + ε
+        loss = loss.mean()
             
         optimizer.zero_grad()
         loss.backward()
+        # update_priorities(indices, priorities.data.cpu().numpy())
         optimizer.step()
 
         # Update target if appropriate
@@ -55,8 +59,8 @@ class DoubleDQNAgent(DQNAgent):
             self.frame = 0
         else:
             self.frame += 4
-        
-        return loss
+
+        return loss, indices, priorities
 
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
