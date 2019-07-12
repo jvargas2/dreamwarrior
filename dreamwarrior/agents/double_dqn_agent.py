@@ -43,8 +43,8 @@ class DoubleDQNAgent(DQNAgent):
         expected_q_value = reward + gamma * next_q_value * (1 - done)
         
         # Compute Huber loss
-        loss = (q_value - expected_q_value.detach()).pow(2) * torch.tensor(weights).unsqueeze(1)
-        # loss = F.smooth_l1_loss(q_value, expected_q_value)
+        loss = F.smooth_l1_loss(q_value, expected_q_value, reduction='none')
+        loss *= torch.tensor(weights, device=self.device).unsqueeze(1)
         priorities = loss + 1e-5 # pi = |δi| + ε
         loss = loss.mean()
             
