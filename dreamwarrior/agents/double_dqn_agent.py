@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 
 from dreamwarrior.agents import DQNAgent
 from dreamwarrior.models import DQN, DuelingDQN
@@ -7,12 +6,12 @@ from dreamwarrior.models import DQN, DuelingDQN
 class DoubleDQNAgent(DQNAgent):
     frame = 0
 
-    def __init__(self, env, model='dqn', device=None):
-        super().__init__(env, model, device)
+    def __init__(self, env, config):
+        super().__init__(env, config)
         init_screen = env.get_full_state()
         model_class = None
 
-        if model == 'dueling-dqn':
+        if config.dueling:
             model_class = DuelingDQN
         else:
             model_class = DQN
@@ -20,13 +19,18 @@ class DoubleDQNAgent(DQNAgent):
         self.target_model = model_class(init_screen.shape, self.num_actions).to(self.device)
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def optimize_model(self, optimizer, memory, gamma, frame):
+    def optimize_model(self, optimizer, memory, frame=None):
         """Optimize the model.
         """
         if len(memory) < memory.batch_size:
             return
 
-        state, action, reward, next_state, done, indices, weights = memory.sample(frame)
+        indices, weights = None, None
+
+        if self.prioritized_memory:
+            state, action, reward, next_state, done, indices, weights = memory.sample(frame)
+        else:
+            state, action, reward, next_state, done = memory.sample()
 
         # Get Q values for every action in first and second states
         q_values = self.model(state)
@@ -40,25 +44,21 @@ class DoubleDQNAgent(DQNAgent):
         next_q_value = next_q_state_values.gather(1, torch.max(next_q_values, 1)[1].unsqueeze(1))
 
         # Calculate expected return
-        expected_q_value = reward + gamma * next_q_value * (1 - done)
+        expected_q_value = reward + self.gamma * next_q_value * (1 - done)
         
         # Compute Huber loss
-        loss = F.smooth_l1_loss(q_value, expected_q_value, reduction='none')
-        loss *= torch.tensor(weights, device=self.device).unsqueeze(1)
-        priorities = loss + 1e-5 # pi = |δi| + ε
-        loss = loss.mean()
+        loss, priorities = self.calculate_loss(q_value, expected_q_value, weights)
             
         optimizer.zero_grad()
         loss.backward()
-        # update_priorities(indices, priorities.data.cpu().numpy())
         optimizer.step()
 
         # Update target if appropriate
-        if self.frame > 10000:
+        if self.frame > self.frame_update:
             self.update_target()
             self.frame = 0
         else:
-            self.frame += 4
+            self.frame += self.frame_skip
 
         return loss, indices, priorities
 

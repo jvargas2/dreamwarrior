@@ -9,46 +9,36 @@ from datetime import datetime
 import retro
 
 import dreamwarrior
-from dreamwarrior import DreamEnv
+from dreamwarrior import DreamEnv, DreamConfig
 from dreamwarrior.trainers import DQNTrainer
 from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
 from dreamwarrior.runners import Runner
 
-def train(args):
-    if args.cuda is None:
-        device = 'cpu'
-    else:
-        device = 'cuda:' + args.cuda
+def train(args, config):
+    if args.cuda is not None:
+        config.device = args.cuda
 
-    env = DreamEnv('NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True, device=device)
-    model = args.model
-    agent = None
+    env = DreamEnv(config, 'NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True)
 
-    if model == 'dqn':
-        agent = DQNAgent(env, model, device)
-    elif model == 'ddqn':
-        agent = DoubleDQNAgent(env, model, device)
-    elif model == 'dueling-dqn':
-        agent = DoubleDQNAgent(env, model, device)
-
-    trainer = DQNTrainer(env, agent, device)
+    trainer = DQNTrainer(env, config)
 
     if args.continue_file:
         trainer.continue_training(args.continue_file)
     else:
         trainer.train()
 
-def run(args):
+def run(args, config):
     env = DreamEnv('NightmareOnElmStreet-Nes', watching=True)
 
     runner = Runner(env, args.agent)
     runner.run()
 
-def play_movie(args):
+def play_movie(args, config):
     movie = retro.Movie(args.filename)
     movie.step()
 
     env = DreamEnv(
+        config=config,
         game=movie.get_game(),
         state=None,
         use_restricted_actions=retro.Actions.ALL,
@@ -74,11 +64,11 @@ def main():
     parser = argparse.ArgumentParser(prog='dreamwarrior', description='Train and test Gym Retro agents.')
     parser.add_argument('-p', '--print_logs', action='store_true', help='Use to print logs to console.')
     parser.add_argument('-c', '--cuda', help='Which CUDA device to use. Only supply integer.')
+    parser.add_argument('-i', '--ini', help='.ini config file to use')
     subparsers = parser.add_subparsers()
 
     # Train arguments
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
-    parser_train.add_argument('-m', '--model', choices=['dqn', 'ddqn', 'dueling-dqn'], default='dqn', help='Type of model to use for agent.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
     parser_train.add_argument('-n', '--name', help='Name of model for properly naming files.')
     parser_train.add_argument('-c', '--continue_file', help='.pth path when continuing training.')
@@ -106,7 +96,11 @@ def main():
     logging.info('\nSTART TIME: ' + current_time)
 
     # Run proper function
-    args.func(args)
+    if args.ini is None:
+        config = DreamConfig()
+    else:
+        config = DreamConfig(args.ini)
+    args.func(args, config)
 
     # Calculate/print end time
     end_time = time.time()

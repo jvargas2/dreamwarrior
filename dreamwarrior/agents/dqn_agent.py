@@ -11,19 +11,23 @@ class DQNAgent:
     env = None
     num_actions = 0
 
-    def __init__(self, env, model='dqn', device=None):
-        self.device = torch.device('cpu' if device is None else device)
+    def __init__(self, env, config):
+        self.device = torch.device(config.device)
         self.env = env
+        self.config = config
         self.num_actions = env.action_space.n
        
         init_screen = env.get_full_state()
 
-        if model == 'dqn' or model == 'ddqn':
-            self.model = DQN(init_screen.shape, self.num_actions).to(self.device)
-        elif model == 'dueling-dqn':
+        if config.dueling:
             self.model = DuelingDQN(init_screen.shape, self.num_actions).to(self.device)
         else:
-            raise ValueError('%s is not a supported model.' % model)
+            self.model = DQN(init_screen.shape, self.num_actions).to(self.device)
+
+        self.gamma = config.gamma
+        self.prioritized_memory = config.prioritized
+        self.frame_skip = config.frame_skip
+        self.frame_update = config.frame_update
 
     def random_action(self):
         action = random.randrange(self.num_actions)
@@ -40,13 +44,18 @@ class DQNAgent:
         # Return the int instead of tensor
         return action.item()
 
-    def optimize_model(self, optimizer, memory, gamma):
+    def optimize_model(self, optimizer, memory, frame=None):
         """Optimize the model.
         """
         if len(memory) < memory.batch_size:
             return
 
-        state, action, reward, next_state, done = memory.sample()
+        indices, weights = None, None
+
+        if self.prioritized_memory:
+            state, action, reward, next_state, done, indices, weights = memory.sample(frame)
+        else:
+            state, action, reward, next_state, done = memory.sample()
 
         # Get Q values for every action in first and second states
         q_values = self.model(state)
@@ -56,16 +65,27 @@ class DQNAgent:
         next_q_value = next_q_values.max(1)[0].unsqueeze(1) # Max Q value in second state
 
         # Calculate expected return
-        expected_q_value = reward + gamma * next_q_value * (1 - done)
+        expected_q_value = reward + self.gamma * next_q_value * (1 - done)
         
         # Compute Huber loss
-        loss = F.smooth_l1_loss(q_value, expected_q_value)
+        loss, priorities = self.calculate_loss(q_value, expected_q_value, weights)
             
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         
-        return loss
+        return loss, indices, priorities
+
+    def calculate_loss(self, q_value, expected_q_value, weights=None):
+        if weights is not None:
+            loss = F.smooth_l1_loss(q_value, expected_q_value, reduction='none')
+            loss *= torch.tensor(weights, device=self.device).unsqueeze(1)
+            priorities = loss + 1e-5
+            loss = loss.mean()
+            return loss, priorities
+        else:
+            loss = F.smooth_l1_loss(q_value, expected_q_value)
+            return loss, None
 
     def get_parameters(self):
         return self.model.parameters()

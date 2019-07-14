@@ -13,8 +13,6 @@ from torchvision import transforms
 import retro
 from retro import RetroEnv
 
-HISTORY_LENGTH = 4
-
 class DreamEnv(RetroEnv):
     """DreamEnv is a child of the Gym Retro RetroEnv class. This class add a custom path for the
     games and a few functions to make training/playing easier.
@@ -25,8 +23,9 @@ class DreamEnv(RetroEnv):
     state_buffer = None
     episode = 1
 
-    def __init__(self, game, name=None, inttype=None, watching=False, device=None, **kwargs):
-        self.device = torch.device('cpu' if device is None else device)
+    def __init__(self, config, game, name=None, inttype=None, watching=False, **kwargs):
+        self.frame_skip = config.frame_skip
+        self.device = torch.device(config.device)
 
         if inttype is None:
             data_path = os.path.dirname(os.path.realpath(__file__))
@@ -40,10 +39,10 @@ class DreamEnv(RetroEnv):
             self.name = name
 
         self.watching = watching
-        self.state_buffer = deque([], maxlen=4)
+        self.state_buffer = deque([], maxlen=self.frame_skip)
         empty_state = self.get_state()
 
-        for _ in range(4):
+        for _ in range(self.frame_skip):
             self.state_buffer.append(empty_state)
 
     def get_state(self):
@@ -110,7 +109,7 @@ class DreamEnv(RetroEnv):
         retro_action = np.zeros((9,), dtype=int)
         retro_action[action] = 1
 
-        for _ in range(4):
+        for _ in range(self.frame_skip):
             _, reward, done, info = super().step(retro_action)
             total_reward += reward
 

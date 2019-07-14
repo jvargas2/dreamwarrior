@@ -10,10 +10,10 @@ class ReplayMemory(object):
     buffer = None
     batch_size = 0
 
-    def __init__(self, capacity, batch_size, device=None):
-        self.device = torch.device('cpu' if device is None else device)
-        self.buffer = deque(maxlen=capacity)
-        self.batch_size = batch_size
+    def __init__(self, config):
+        self.device = torch.device(config.device)
+        self.buffer = deque(maxlen=config.capacity)
+        self.batch_size = config.batch_size
 
     def push(self, state, action, reward, next_state, done):
         """Saves a transition."""

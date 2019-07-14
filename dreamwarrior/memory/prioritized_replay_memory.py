@@ -7,19 +7,19 @@ low capacity.
 import numpy as np
 import torch
 
-ALPHA = 0.6 # How much prioritization is used
-BETA_START = 0.4
-BETA_FRAMES = int(1e6)
-
 class PrioritizedReplayMemory:
-    def __init__(self, capacity, batch_size, device=None):
-        self.device = device
-        self.capacity = capacity
+    def __init__(self, config):
+        self.batch_size = config.batch_size
+        self.capacity = config.capacity
+        self.device = torch.device(config.device)
         self.buffer = []
-        self.batch_size = batch_size
 
         self.position = 0
-        self.priorities = np.zeros((capacity,), dtype=np.float32)
+        self.priorities = np.zeros((self.capacity,), dtype=np.float32)
+
+        self.alpha = config.alpha
+        self.beta_start = config.beta_start
+        self.beta_frames = config.beta_frames
 
     def push(self, state, action, reward, next_state, done):
         """Saves a transition."""
@@ -38,7 +38,8 @@ class PrioritizedReplayMemory:
     def sample(self, frame):
         """Select a sample using proportional prioritization.
         """
-        beta = min(1.0, BETA_START + frame * (1.0 - BETA_START) / BETA_FRAMES)
+        start = self.beta_start
+        beta = min(1.0, start + frame * (1.0 - start) / self.beta_frames)
 
         if len(self.buffer) == self.capacity:
             priorities = self.priorities
@@ -46,7 +47,7 @@ class PrioritizedReplayMemory:
             priorities = self.priorities[:self.position]
 
         # P(i) = (pi^alpha) / (sum(pk^alpha))
-        probabilities = priorities ** ALPHA
+        probabilities = priorities ** self.alpha
         probabilities /= probabilities.sum()
 
         # Select sample based on computed probabilities

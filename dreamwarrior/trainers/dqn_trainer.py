@@ -12,38 +12,45 @@ import torch.optim as optim
 from torchvision import transforms
 
 import dreamwarrior
-from dreamwarrior.agents import DQNAgent
+from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
 from dreamwarrior.memory import ReplayMemory, PrioritizedReplayMemory
-
-BATCH_SIZE = 32
-GAMMA = 0.999
-FRAME_LIMIT = int(1e7) # 10 million
-FRAME_SKIP = 4
-LEARNING_RATE = 0.00025 # DDQN paper
-MEMORY_SIZE = int(1e5) # 100k
-
-# Epsilon
-EPSILON_START = 1.0
-EPSILON_END = 0.01
-EPSILON_DECAY = int(5e4)
 
 class DQNTrainer:
     device = None
     env = None
     agent = None
 
-    def __init__(self, env, agent, device=None):
-        self.device = torch.device('cpu' if device is None else device)
+    def __init__(self, env, config):
+        self.device = torch.device(config.device)
         self.env = env
-        self.agent = agent
+        self.config = config
+
+        if config.double:
+            self.agent = DoubleDQNAgent(env, config)
+        else:
+            self.agent = DQNAgent(env, config)
+
+        if config.prioritized:
+            self.prioritized_memory = True
+        else:
+            self.prioritized_memory = False
+
+        self.frame_limit = config.frame_limit
+        self.learning_rate = config.learning_rate
+        self.epsilon_start = config.epsilon_start
+        self.epsilon_end = config.epsilon_end
+        self.epsilon_decay = config.epsilon_decay
 
     def training_select_action(self, state, frame_count):
         # Select and perform an action
+        start = self.epsilon_start
+        end = self.epsilon_end
+        decay = self.epsilon_decay
+
+        epsilon_threshold = end + (start - end) * math.exp(-1. * frame_count / decay)
         sample = random.random()
-        eps_threshold = EPSILON_END + (EPSILON_START - EPSILON_END) * \
-            math.exp(-1. * frame_count / EPSILON_DECAY)
         
-        if sample > eps_threshold:
+        if sample > epsilon_threshold:
             action = self.agent.select_action(state)
         else:
             action = self.agent.random_action()
@@ -55,18 +62,20 @@ class DQNTrainer:
         env = self.env
         device = self.device
         
-        optimizer = optim.RMSprop(self.agent.get_parameters(), lr=LEARNING_RATE)
+        optimizer = optim.RMSprop(self.agent.get_parameters(), lr=self.learning_rate)
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
-        # memory = ReplayMemory(MEMORY_SIZE, BATCH_SIZE, device=self.device)
-        memory = PrioritizedReplayMemory(MEMORY_SIZE, BATCH_SIZE, device=self.device)
+        if self.prioritized_memory:
+            memory = PrioritizedReplayMemory(self.config)
+        else:
+            memory = ReplayMemory(self.config)
 
         frame_count = frame
         episode_rewards = rewards
 
         # for i_episode in range(start_episode, NUM_FRAME):
-        while frame_count < FRAME_LIMIT:
+        while frame_count < self.frame_limit:
             episode_reward = 0
             losses = []
 
@@ -94,11 +103,14 @@ class DQNTrainer:
                 # Perform one step of the optimization (on the target network)
                 loss = None
                 if len(memory) >= memory.batch_size:
-                    loss, indices, priorities = self.agent.optimize_model(optimizer, memory, GAMMA, frame_count)
+                    if self.prioritized_memory:
+                        loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame_count)
+                    else:
+                        loss, _, _ = self.agent.optimize_model(optimizer, memory, frame_count)
 
                 if loss is not None:
-                    # TODO Move to a better place for making prioritized memory optional
-                    memory.update_priorities(indices, priorities)
+                    if self.prioritized_memory:
+                        memory.update_priorities(indices, priorities)
 
                     losses.append(loss)
                     if t % 1000 == 0:
@@ -106,15 +118,15 @@ class DQNTrainer:
                         logging.info('t=%d loss: %f' % (t, average_loss))
                         losses = []
 
-                if done or frame_count >= FRAME_LIMIT:
+                if done or frame_count >= self.frame_limit:
                     break
                 
             logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)
             logging.info('Training Progress: %dk/%dk (%.2f%%)' % (
                 frame_count / 1000,
-                FRAME_LIMIT / 1000,
-                (frame_count / FRAME_LIMIT) * 100
+                self.frame_limit / 1000,
+                (frame_count / self.frame_limit) * 100
             ))
             episode += 1
             episode_rewards.append(episode_reward)
