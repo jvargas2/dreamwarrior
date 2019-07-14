@@ -20,6 +20,7 @@ class DreamConfig:
         self.double = model.getboolean('double')
         self.dueling = model.getboolean('dueling')
         self.prioritized = model.getboolean('prioritized')
+        self.noisy = model.getboolean('noisy')
 
         # Set training parameters
         training = config['training']

@@ -35,11 +35,11 @@ class DuelingDQN(nn.Module):
 
     def feature_size(self):
         zeros = torch.zeros(1, *self.input_shape)
-        return self.features(torch.autograd.Variable(zeros)).view(1, -1).size(1)
+        return self.features(zeros).view(1, -1).size(1)
 
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
         advantage = self.advantage(x)
         value = self.value(x)
-        return value + advantage  - advantage.mean()
+        return value + advantage - advantage.mean()

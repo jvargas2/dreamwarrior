@@ -37,25 +37,6 @@ class DQNTrainer:
 
         self.frame_limit = config.frame_limit
         self.learning_rate = config.learning_rate
-        self.epsilon_start = config.epsilon_start
-        self.epsilon_end = config.epsilon_end
-        self.epsilon_decay = config.epsilon_decay
-
-    def training_select_action(self, state, frame_count):
-        # Select and perform an action
-        start = self.epsilon_start
-        end = self.epsilon_end
-        decay = self.epsilon_decay
-
-        epsilon_threshold = end + (start - end) * math.exp(-1. * frame_count / decay)
-        sample = random.random()
-        
-        if sample > epsilon_threshold:
-            action = self.agent.select_action(state)
-        else:
-            action = self.agent.random_action()
-
-        return action
 
     def train(self, frame=0, rewards=[], episode=1, optimizer_state=None):
         logging.info('Starting training...')
@@ -83,7 +64,8 @@ class DQNTrainer:
             state = env.get_full_state()
 
             for t in count():
-                action = self.training_select_action(state, frame_count)
+                # action = self.training_select_action(state, frame_count)
+                action = self.agent.act(state, frame_count)
 
                 next_state, reward, done, _ = env.step(action)
                 frame_count += 4

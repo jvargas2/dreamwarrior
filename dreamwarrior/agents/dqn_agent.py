@@ -1,15 +1,17 @@
 import random
 import logging
+import math
 
 import torch
 import torch.nn.functional as F
 
-from dreamwarrior.models import DQN, DuelingDQN
+from dreamwarrior.nn import DQN, DuelingDQN, NoisyNetDQN, NoisyNetDueling
 
 class DQNAgent:
     device = None
     env = None
     num_actions = 0
+    noisy = False
 
     def __init__(self, env, config):
         self.device = torch.device(config.device)
@@ -19,15 +21,27 @@ class DQNAgent:
        
         init_screen = env.get_full_state()
 
-        if config.dueling:
-            self.model = DuelingDQN(init_screen.shape, self.num_actions).to(self.device)
+        if config.dueling and config.noisy:
+            self.model_class = NoisyNetDueling
+        elif config.dueling:
+            self.model_class = DuelingDQN
+        elif config.noisy:
+            self.model_class = NoisyNetDQN
         else:
-            self.model = DQN(init_screen.shape, self.num_actions).to(self.device)
+            self.model_class = DQN
 
+        self.model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
+
+        self.noisy = config.noisy
         self.gamma = config.gamma
         self.prioritized_memory = config.prioritized
         self.frame_skip = config.frame_skip
         self.frame_update = config.frame_update
+
+        if not self.noisy:
+            self.epsilon_start = config.epsilon_start
+            self.epsilon_end = config.epsilon_end
+            self.epsilon_decay = config.epsilon_decay
 
     def random_action(self):
         action = random.randrange(self.num_actions)
@@ -43,6 +57,26 @@ class DQNAgent:
 
         # Return the int instead of tensor
         return action.item()
+
+    def act(self, state, frame_count):
+        if self.noisy:
+            return self.select_action(state)
+
+        else:
+            # Epislon greedy strategy
+            start = self.epsilon_start
+            end = self.epsilon_end
+            decay = self.epsilon_decay
+
+            epsilon_threshold = end + (start - end) * math.exp(-1. * frame_count / decay)
+            sample = random.random()
+            
+            if sample > epsilon_threshold:
+                action = self.select_action(state)
+            else:
+                action = self.random_action()
+
+            return action
 
     def optimize_model(self, optimizer, memory, frame=None):
         """Optimize the model.

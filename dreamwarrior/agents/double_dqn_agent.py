@@ -1,7 +1,6 @@
 import torch
 
 from dreamwarrior.agents import DQNAgent
-from dreamwarrior.models import DQN, DuelingDQN
 
 class DoubleDQNAgent(DQNAgent):
     frame = 0
@@ -9,14 +8,8 @@ class DoubleDQNAgent(DQNAgent):
     def __init__(self, env, config):
         super().__init__(env, config)
         init_screen = env.get_full_state()
-        model_class = None
 
-        if config.dueling:
-            model_class = DuelingDQN
-        else:
-            model_class = DQN
-
-        self.target_model = model_class(init_screen.shape, self.num_actions).to(self.device)
+        self.target_model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
         self.target_model.load_state_dict(self.model.state_dict())
 
     def optimize_model(self, optimizer, memory, frame=None):
