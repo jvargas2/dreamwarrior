@@ -16,7 +16,7 @@ from dreamwarrior.runners import Runner
 
 def train(args, config):
     if args.cuda is not None:
-        config.device = args.cuda
+        config.device = 'cuda:' + args.cuda
 
     env = DreamEnv(config, 'NightmareOnElmStreet-Nes', name=args.name, watching=args.watching, record=True)
 

@@ -43,7 +43,8 @@ class DQNTrainer:
         env = self.env
         device = self.device
         
-        optimizer = optim.RMSprop(self.agent.get_parameters(), lr=self.learning_rate)
+        # optimizer = optim.RMSprop(self.agent.get_parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(self.agent.get_parameters(), lr=self.learning_rate, eps=1.5e-4)
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
