@@ -76,6 +76,8 @@ class DQNTrainer:
                     logging.info('t=%i got reward: %g' % (t, reward))
                 elif reward < 0:
                     logging.info('t=%i got penalty: %g' % (t, reward))
+                else:
+                    reward = -1
 
                 # Store the transition in memory
                 memory.push(state, action, reward, next_state, done)
