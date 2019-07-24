@@ -70,10 +70,11 @@ class DQNTrainer:
 
                 next_state, reward, done, _ = env.step(action)
                 frame_count += 4
-                episode_reward += reward
 
                 if reward > 0:
+                    # Only add reward to count if its positive
                     logging.info('t=%i got reward: %g' % (t, reward))
+                    episode_reward += reward
                 elif reward < 0:
                     logging.info('t=%i got penalty: %g' % (t, reward))
                 else:

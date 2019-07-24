@@ -1,5 +1,9 @@
 {
   "info": {
+    "bones": {
+      "address": 1771,
+      "type": "|u1"
+    },
     "player1_hits": {
       "address": 266,
       "type": "|u1"
