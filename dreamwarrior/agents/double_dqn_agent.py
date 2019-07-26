@@ -46,6 +46,10 @@ class DoubleDQNAgent(DQNAgent):
         loss.backward()
         optimizer.step()
 
+        if self.noisy:
+            self.model.reset_noise()
+            self.target_model.reset_noise()
+
         # Update target if appropriate
         if self.frame > self.frame_update:
             self.update_target()

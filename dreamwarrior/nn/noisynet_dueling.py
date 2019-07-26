@@ -23,18 +23,6 @@ class NoisyNetDueling(nn.Module):
             nn.ReLU()
         )
 
-        self.advantage = nn.Sequential(
-            nn.Linear(self.feature_size(), 512),
-            nn.ReLU(),
-            nn.Linear(512, num_actions)
-        )
-        
-        self.value = nn.Sequential(
-            nn.Linear(self.feature_size(), 512),
-            nn.ReLU(),
-            nn.Linear(512, 1)
-        )
-
         self.noisy_value1 = Noisy(self.feature_size(), 512)
         self.noisy_value2 = Noisy(512, 1)
         
@@ -59,8 +47,6 @@ class NoisyNetDueling(nn.Module):
         advantage = advantage.view(batch_size, self.num_actions)
 
         x = value + advantage - advantage.mean()
-        # x = value + advantage - advantage.mean(1, keepdim=True)
-        # x = F.softmax(x.view(-1, self.num_atoms)).view(-1, self.num_actions, self.num_atoms)
 
         return x
 

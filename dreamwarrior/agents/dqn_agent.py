@@ -107,6 +107,9 @@ class DQNAgent:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        if self.noisy:
+            self.model.reset_noise()
         
         return loss, indices, priorities
 
