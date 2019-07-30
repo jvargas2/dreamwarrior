@@ -28,10 +28,10 @@ def train(args, config):
         trainer.train()
 
 def run(args, config):
-    env = DreamEnv('NightmareOnElmStreet-Nes', watching=True)
+    env = DreamEnv(config, 'NightmareOnElmStreet-Nes', watching=True)
 
-    runner = Runner(env, args.agent)
-    runner.run()
+    trainer = DQNTrainer(env, config)
+    # trainer.run()
 
 def play_movie(args, config):
     movie = retro.Movie(args.filename)

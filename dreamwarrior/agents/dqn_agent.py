@@ -30,7 +30,10 @@ class DQNAgent:
         else:
             self.model_class = DQN
 
-        self.model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
+        if config.categorical:
+            self.model = self.model_class(init_screen.shape, self.num_actions, config.atoms).to(self.device)
+        else:
+            self.model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
 
         self.noisy = config.noisy
         self.gamma = config.gamma
@@ -61,7 +64,6 @@ class DQNAgent:
     def act(self, state, frame_count):
         if self.noisy:
             return self.select_action(state)
-
         else:
             # Epislon greedy strategy
             start = self.epsilon_start

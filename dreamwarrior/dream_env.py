@@ -26,6 +26,8 @@ class DreamEnv(RetroEnv):
     def __init__(self, config, game, name=None, inttype=None, watching=False, **kwargs):
         self.frame_skip = config.frame_skip
         self.device = torch.device(config.device)
+        self.height = config.height
+        self.width = config.width
 
         if inttype is None:
             data_path = os.path.dirname(os.path.realpath(__file__))
@@ -55,7 +57,7 @@ class DreamEnv(RetroEnv):
         screen_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Grayscale(),
-            transforms.Resize(112, interpolation=Image.CUBIC),
+            transforms.Resize(self.height, interpolation=Image.CUBIC),
             transforms.ToTensor()
         ])
 
@@ -124,7 +126,3 @@ class DreamEnv(RetroEnv):
         state = torch.cat(list(self.state_buffer))
 
         return state, total_reward, done, info
-
-    def _reset_buffer(self):
-        for _ in range(HISTORY_LENGTH):
-            self.state_buffer.append(torch.zeros(3, 224, 240, device=self.device))

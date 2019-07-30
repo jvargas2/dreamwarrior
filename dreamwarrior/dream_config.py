@@ -12,6 +12,8 @@ class DreamConfig:
 
         # Set environment parameters
         environment = config['environment']
+        self.height = environment.getint('height')
+        self.width = environment.getint('width')
         self.device = environment['device']
         self.frame_skip = environment.getint('frame_skip')
 
@@ -21,6 +23,10 @@ class DreamConfig:
         self.dueling = model.getboolean('dueling')
         self.prioritized = model.getboolean('prioritized')
         self.noisy = model.getboolean('noisy')
+        self.categorical = model.getboolean('categorical')
+
+        if self.categorical and not self.double:
+            raise ValueError('Dream Warrior does not support training non-double DQNs')
 
         # Set training parameters
         training = config['training']
@@ -31,6 +37,9 @@ class DreamConfig:
         self.epsilon_start = training.getfloat('epsilon_start')
         self.epsilon_end = training.getfloat('epsilon_end')
         self.epsilon_decay = training.getfloat('epsilon_decay')
+        self.atoms = training.getint('atoms')
+        self.v_min = training.getint('v_min')
+        self.v_max = training.getint('v_max')
 
         # Set memory parameters
         memory = config['memory']

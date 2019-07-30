@@ -20,7 +20,7 @@ class Runner:
         self.device = torch.device('cpu' if device is None else device)
         self.env = env
 
-        agent = DoubleDQNAgent(env, model='dueling-dqn')
+        agent = DoubleDQNAgent(env, config)
         agent.load(player_one)
         self.player_one = agent
 

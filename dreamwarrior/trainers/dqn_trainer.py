@@ -12,7 +12,7 @@ import torch.optim as optim
 from torchvision import transforms
 
 import dreamwarrior
-from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
+from dreamwarrior.agents import DQNAgent, DoubleDQNAgent, CategoricalDQNAgent
 from dreamwarrior.memory import ReplayMemory, PrioritizedReplayMemory
 
 class DQNTrainer:
@@ -25,16 +25,14 @@ class DQNTrainer:
         self.env = env
         self.config = config
 
-        if config.double:
+        if config.categorical:
+            self.agent = CategoricalDQNAgent(env, config)
+        elif config.double:
             self.agent = DoubleDQNAgent(env, config)
         else:
             self.agent = DQNAgent(env, config)
 
-        if config.prioritized:
-            self.prioritized_memory = True
-        else:
-            self.prioritized_memory = False
-
+        self.prioritized = config.prioritized
         self.frame_limit = config.frame_limit
         self.learning_rate = config.learning_rate
 
@@ -48,7 +46,7 @@ class DQNTrainer:
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
-        if self.prioritized_memory:
+        if self.prioritized:
             memory = PrioritizedReplayMemory(self.config)
         else:
             memory = ReplayMemory(self.config)
@@ -89,13 +87,13 @@ class DQNTrainer:
                 # Perform one step of the optimization (on the target network)
                 loss = None
                 if len(memory) >= memory.batch_size:
-                    if self.prioritized_memory:
+                    if self.prioritized:
                         loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame_count)
                     else:
                         loss, _, _ = self.agent.optimize_model(optimizer, memory, frame_count)
 
                 if loss is not None:
-                    if self.prioritized_memory:
+                    if self.prioritized:
                         memory.update_priorities(indices, priorities)
 
                     losses.append(loss)

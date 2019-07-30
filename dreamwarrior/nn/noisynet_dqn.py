@@ -5,10 +5,12 @@ import torch.nn.functional as F
 from dreamwarrior.nn import Noisy
 
 class NoisyNetDQN(nn.Module):
-    def __init__(self, input_shape, num_actions):
+    def __init__(self, input_shape, num_actions, num_atoms=0):
         super(NoisyNetDQN, self).__init__()
 
         self.input_shape = input_shape
+        self.num_actions = num_actions
+        self.num_atoms = num_atoms
 
         self.features = nn.Sequential(
             nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
@@ -20,7 +22,11 @@ class NoisyNetDQN(nn.Module):
         )
 
         self.noisy1 = Noisy(self.feature_size(), 512)
-        self.noisy2 = Noisy(512, num_actions)
+
+        if num_atoms > 0:
+            self.noisy2 = Noisy(512, num_actions * num_atoms)
+        else:
+            self.noisy2 = Noisy(512, num_actions)
 
     def feature_size(self):
         zeros = torch.zeros(1, *self.input_shape)
@@ -31,6 +37,20 @@ class NoisyNetDQN(nn.Module):
         x = x.view(x.size(0), -1)
         x = F.relu(self.noisy1(x))
         x = self.noisy2(x)
+        return x
+
+    def c51_forward(self, x):
+        if self.num_atoms == 0:
+            raise ValueError('NoisyNetDQN was created without num_atoms. Impossible to do C51')
+
+        batch_size = x.size(0)
+
+        x = self.features(x)
+        x = x.view(batch_size, -1)
+
+        x = F.relu(self.noisy1(x))
+        x = self.noisy2(x)
+        x = F.softmax(x.view(-1, self.num_atoms)).view(-1, self.num_actions, self.num_atoms)
         return x
 
     def reset_noise(self):
