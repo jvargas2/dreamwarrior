@@ -78,7 +78,6 @@ class PrioritizedReplayMemory:
         return states, actions, rewards, next_states, dones, indices, weights
 
     def update_priorities(self, batch_indices, batch_priorities):
-        # batch_priorities =
         for index, priority in zip(batch_indices, batch_priorities):
             self.priorities[index] = priority
 

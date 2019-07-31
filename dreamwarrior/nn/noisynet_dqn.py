@@ -37,20 +37,11 @@ class NoisyNetDQN(nn.Module):
         x = x.view(x.size(0), -1)
         x = F.relu(self.noisy1(x))
         x = self.noisy2(x)
-        return x
 
-    def c51_forward(self, x):
-        if self.num_atoms == 0:
-            raise ValueError('NoisyNetDQN was created without num_atoms. Impossible to do C51')
+        if self.num_atoms > 0:
+            x = F.softmax(x.view(-1, self.num_atoms), dim=1)
+            x = x.view(-1, self.num_actions, self.num_atoms)
 
-        batch_size = x.size(0)
-
-        x = self.features(x)
-        x = x.view(batch_size, -1)
-
-        x = F.relu(self.noisy1(x))
-        x = self.noisy2(x)
-        x = F.softmax(x.view(-1, self.num_atoms)).view(-1, self.num_actions, self.num_atoms)
         return x
 
     def reset_noise(self):

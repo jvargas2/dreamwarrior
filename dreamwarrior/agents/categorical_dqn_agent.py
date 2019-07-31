@@ -31,7 +31,7 @@ class CategoricalDQNAgent(DQNAgent):
 
         batch_size = next_state.size(0)
         
-        next_distribution = self.target_model.c51_forward(next_state).data.cpu() * support
+        next_distribution = self.target_model(next_state).data.cpu() * support
         next_action = next_distribution.sum(2).max(1)[1]
         next_action = next_action.unsqueeze(1).unsqueeze(1).expand(
             next_distribution.size(0),
@@ -86,12 +86,12 @@ class CategoricalDQNAgent(DQNAgent):
 
         projected_distribution = self.projection_distribution(next_state, reward, done)
 
-        distribution = self.model.c51_forward(state)
+        distribution = self.model(state)
         action = action.unsqueeze(1).expand(self.batch_size, 1, self.atoms)
         distribution = distribution.gather(1, action).squeeze(1)
         distribution.data.clamp_(0.01, 0.99)
         loss = -(projected_distribution * distribution.log()).sum(1)
-        priorities = loss + 1e-5
+        priorities = torch.abs(loss) + 1e-5
         loss = loss.mean()
             
         optimizer.zero_grad()
@@ -113,7 +113,7 @@ class CategoricalDQNAgent(DQNAgent):
 
     def act(self, state, frame_count):
         state = state.unsqueeze(0)
-        distribution = self.model.c51_forward(state).data.cpu()
+        distribution = self.model(state).data.cpu()
         distribution = distribution * torch.linspace(self.v_min, self.v_max, self.atoms)
         action = distribution.sum(2).max(1)[1].item()
         return action
