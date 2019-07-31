@@ -20,7 +20,7 @@ class CategoricalDQNAgent(DQNAgent):
         self.v_min = config.v_min
         self.v_max = config.v_max
         self.delta_z = float(self.v_max - self.v_min) / (self.atoms - 1)
-        self.support = torch.linspace(self.v_min, self.v_max, self.atoms)
+        self.support = torch.linspace(self.v_min, self.v_max, self.atoms, device=self.device)
 
     def projection_distribution(self, next_state, rewards, dones):
         atoms = self.atoms
@@ -31,7 +31,7 @@ class CategoricalDQNAgent(DQNAgent):
 
         batch_size = next_state.size(0)
         
-        next_distribution = self.target_model(next_state).data.cpu() * support
+        next_distribution = self.target_model(next_state) * support
         next_action = next_distribution.sum(2).max(1)[1]
         next_action = next_action.unsqueeze(1).unsqueeze(1).expand(
             next_distribution.size(0),
@@ -53,11 +53,12 @@ class CategoricalDQNAgent(DQNAgent):
         offset = torch.linspace(
             0,
             (batch_size - 1) * atoms,
-            batch_size
+            batch_size,
+            device=self.device
         ).long().unsqueeze(1).expand(batch_size, atoms)
 
         # Calculate projected distribution
-        projection = torch.zeros(next_distribution.size())
+        projection = torch.zeros(next_distribution.size(), device=self.device)
         projection.view(-1).index_add_(
             0,
             (l + offset).view(-1),
