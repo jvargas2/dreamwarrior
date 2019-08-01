@@ -30,7 +30,7 @@ class Noisy(nn.Module):
 
         they do:
 
-        y = (μ+σ⊙ε)x+μ+σ⊙ε
+        y = (μ+σ⊙ε)x + μ+σ⊙ε
 
         where μ+σ⊙ε replaces w and μ+σ⊙ε replaces b
         """

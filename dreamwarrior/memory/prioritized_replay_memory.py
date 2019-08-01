@@ -61,7 +61,6 @@ class PrioritizedReplayMemory:
 
         # Normalize weights so they only scale the update downwards
         # 1 / maxi wi
-        # TODO Confirm whether this should be (1/maxi)*wi or 1/(maxi*wi)
         weights /= weights.max()
         weights = np.array(weights, dtype=np.float32)
 

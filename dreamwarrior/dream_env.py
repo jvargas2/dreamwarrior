@@ -29,13 +29,18 @@ class DreamEnv(RetroEnv):
         self.height = config.height
         self.width = config.width
 
-        if inttype is None:
-            data_path = os.path.dirname(os.path.realpath(__file__))
-            data_path += '/data'
-            inttype = retro.data.Integrations.CUSTOM
-            inttype.add_custom_path(os.path.abspath(data_path))
+        custom_data_directory = os.path.dirname(os.path.realpath(__file__))
+        custom_data_directory += '/data'
+        custom_games = os.listdir(custom_data_directory)
 
-        super().__init__(game, inttype=inttype, **kwargs)
+        if game in custom_games:
+            inttype = retro.data.Integrations.CUSTOM
+            inttype.add_custom_path(os.path.abspath(custom_data_directory))
+
+        if inttype is not None:
+            super().__init__(game, inttype=inttype, **kwargs)
+        else:
+            super().__init__(game, **kwargs)
 
         if name is not None:
             self.name = name

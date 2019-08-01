@@ -42,7 +42,7 @@ class DQNTrainer:
         device = self.device
         
         # optimizer = optim.RMSprop(self.agent.get_parameters(), lr=self.learning_rate)
-        optimizer = optim.Adam(self.agent.get_parameters(), lr=self.learning_rate, eps=1.5e-4)
+        optimizer = optim.Adam(self.agent.get_parameters(), lr=self.learning_rate)
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
@@ -63,7 +63,6 @@ class DQNTrainer:
             state = env.get_full_state()
 
             for t in count():
-                # action = self.training_select_action(state, frame_count)
                 action = self.agent.act(state, frame_count)
 
                 next_state, reward, done, _ = env.step(action)
@@ -75,8 +74,8 @@ class DQNTrainer:
                     episode_reward += reward
                 elif reward < 0:
                     logging.info('t=%i got penalty: %g' % (t, reward))
-                else:
-                    reward = -1
+                # else:
+                #     reward = -1
 
                 # Store the transition in memory
                 memory.push(state, action, reward, next_state, done)
@@ -97,9 +96,9 @@ class DQNTrainer:
                         memory.update_priorities(indices, priorities)
 
                     losses.append(loss)
-                    if t % 1000 == 0:
+                    if frame_count % 1000 == 0:
                         average_loss = sum(losses) / len(losses)
-                        logging.info('t=%d loss: %f' % (t, average_loss))
+                        logging.info('f=%dk loss: %f' % (frame_count / 1000, average_loss))
                         losses = []
 
                 if done or frame_count >= self.frame_limit:

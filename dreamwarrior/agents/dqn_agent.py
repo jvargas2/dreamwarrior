@@ -51,7 +51,7 @@ class DQNAgent:
 
         return action
 
-    def select_action(self, state):
+    def select_action(self, state, frame_count):
         # Get state out of batch
         state = state.unsqueeze(0)
 
@@ -63,9 +63,9 @@ class DQNAgent:
 
     def act(self, state, frame_count):
         if self.noisy:
-            return self.select_action(state)
+            return self.select_action(state, frame_count)
         else:
-            # Epislon greedy strategy
+            # Epsilon greedy strategy
             start = self.epsilon_start
             end = self.epsilon_end
             decay = self.epsilon_decay

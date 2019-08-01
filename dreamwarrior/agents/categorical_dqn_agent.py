@@ -112,7 +112,7 @@ class CategoricalDQNAgent(DQNAgent):
 
         return loss, indices, priorities
 
-    def act(self, state, frame_count):
+    def select_action(self, state, frame_count):
         state = state.unsqueeze(0)
         distribution = self.model(state).data.cpu()
         distribution = distribution * torch.linspace(self.v_min, self.v_max, self.atoms)
