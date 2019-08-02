@@ -33,16 +33,22 @@ class DQNTrainer:
             self.agent = DQNAgent(env, config)
 
         self.prioritized = config.prioritized
+        self.min_frames = config.min_frames
         self.frame_limit = config.frame_limit
         self.learning_rate = config.learning_rate
+        self.adam_epsilon = config.adam_epsilon
 
     def train(self, frame=0, rewards=[], episode=1, optimizer_state=None):
         logging.info('Starting training...')
         env = self.env
         device = self.device
         
-        # optimizer = optim.RMSprop(self.agent.get_parameters(), lr=self.learning_rate)
-        optimizer = optim.Adam(self.agent.get_parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(
+            self.agent.get_parameters(),
+            lr=self.learning_rate,
+            eps=self.adam_epsilon
+        )
+
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
 
@@ -74,6 +80,7 @@ class DQNTrainer:
                     episode_reward += reward
                 elif reward < 0:
                     logging.info('t=%i got penalty: %g' % (t, reward))
+                    episode_reward += reward
                 # else:
                 #     reward = -1
 
@@ -85,7 +92,7 @@ class DQNTrainer:
 
                 # Perform one step of the optimization (on the target network)
                 loss = None
-                if len(memory) >= memory.batch_size:
+                if len(memory) >= memory.batch_size and frame_count > self.min_frames:
                     if self.prioritized:
                         loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame_count)
                     else:

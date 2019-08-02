@@ -27,7 +27,6 @@ class DreamEnv(RetroEnv):
         self.frame_skip = config.frame_skip
         self.device = torch.device(config.device)
         self.height = config.height
-        self.width = config.width
 
         custom_data_directory = os.path.dirname(os.path.realpath(__file__))
         custom_data_directory += '/data'

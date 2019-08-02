@@ -56,10 +56,13 @@ class DQNAgent:
         state = state.unsqueeze(0)
 
         with torch.no_grad():
-            action = self.model(state).max(1)[1]
+            q_values = self.model(state)
+            action = q_values.max(1)[1].item()
 
-        # Return the int instead of tensor
-        return action.item()
+        if self.noisy:
+            self.model.reset_noise()
+
+        return action
 
     def act(self, state, frame_count):
         if self.noisy:

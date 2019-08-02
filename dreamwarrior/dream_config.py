@@ -13,7 +13,6 @@ class DreamConfig:
         # Set environment parameters
         environment = config['environment']
         self.height = environment.getint('height')
-        self.width = environment.getint('width')
         self.device = environment['device']
         self.frame_skip = environment.getint('frame_skip')
 
@@ -31,9 +30,11 @@ class DreamConfig:
         # Set training parameters
         training = config['training']
         self.gamma = training.getfloat('gamma')
+        self.min_frames = int(training.getfloat('min_frames'))
         self.frame_limit = int(training.getfloat('frame_limit'))
         self.frame_update = int(training.getfloat('frame_update'))
         self.learning_rate = training.getfloat('learning_rate')
+        self.adam_epsilon = training.getfloat('adam_epsilon')
         self.epsilon_start = training.getfloat('epsilon_start')
         self.epsilon_end = training.getfloat('epsilon_end')
         self.epsilon_decay = training.getfloat('epsilon_decay')
