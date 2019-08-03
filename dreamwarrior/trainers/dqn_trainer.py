@@ -107,7 +107,7 @@ class DQNTrainer:
                         average_loss = mean(episode_losses)
                         logging.debug('f=%dk episode loss: %f' % (frame_count / 1000, average_loss))
 
-                if done or frame_count >= self.frame_limit or frame_count >= self.episode_frame_max:
+                if done or frame_count >= self.frame_limit or t * 4 >= self.episode_frame_max:
                     break
 
             mean_loss = mean(episode_losses) if episode_losses else 1
