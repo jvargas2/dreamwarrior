@@ -44,7 +44,7 @@ class CategoricalDQNAgent(DQNAgent):
         dones = dones.expand_as(next_distribution)
         support = support.unsqueeze(0).expand_as(next_distribution)
         
-        Tz = rewards + (1 - dones) * 0.99 * support
+        Tz = rewards + (1 - dones) * self.gamma * support
         Tz = Tz.clamp(min=v_min, max=v_max)
         b  = (Tz - v_min) / delta_z
         l  = b.floor().long()
@@ -75,9 +75,6 @@ class CategoricalDQNAgent(DQNAgent):
     def optimize_model(self, optimizer, memory, frame=None):
         """Optimize the model.
         """
-        if len(memory) < memory.batch_size:
-            return
-
         indices, weights, priorities = None, None, None
 
         if self.prioritized_memory:
@@ -110,13 +107,14 @@ class CategoricalDQNAgent(DQNAgent):
         else:
             self.frame += self.frame_skip
 
-        return loss, indices, priorities
+        return loss.item(), indices, priorities
 
     def select_action(self, state, frame_count):
         state = state.unsqueeze(0)
-        distribution = self.model(state).data.cpu()
-        distribution = distribution * torch.linspace(self.v_min, self.v_max, self.atoms)
-        action = distribution.sum(2).max(1)[1].item()
+        distribution = self.model(state)
+        distribution = distribution * self.support
+        action_values = distribution.sum(2)
+        action = action_values.max(1)[1].item()
         return action
 
     def update_target(self):

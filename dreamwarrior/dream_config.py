@@ -33,6 +33,7 @@ class DreamConfig:
         self.min_frames = int(training.getfloat('min_frames'))
         self.frame_limit = int(training.getfloat('frame_limit'))
         self.frame_update = int(training.getfloat('frame_update'))
+        self.episode_frame_max = int(training.getfloat('episode_frame_max'))
         self.learning_rate = training.getfloat('learning_rate')
         self.adam_epsilon = training.getfloat('adam_epsilon')
         self.epsilon_start = training.getfloat('epsilon_start')
@@ -49,4 +50,5 @@ class DreamConfig:
         self.alpha = memory.getfloat('alpha')
         self.beta_start = memory.getfloat('beta_start')
         self.beta_frames = int(memory.getfloat('beta_frames'))
+        self.multi_step = memory.getint('multi_step')
         

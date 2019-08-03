@@ -7,33 +7,25 @@ low capacity.
 import numpy as np
 import torch
 
-class PrioritizedReplayMemory:
+from dreamwarrior.memory import ReplayMemory
+
+class PrioritizedReplayMemory(ReplayMemory):
     def __init__(self, config):
-        self.batch_size = config.batch_size
-        self.capacity = config.capacity
-        self.device = torch.device(config.device)
-        self.buffer = []
+        super().__init__(config)
 
-        self.position = 0
         self.priorities = np.zeros((self.capacity,), dtype=np.float32)
-
         self.alpha = config.alpha
         self.beta_start = config.beta_start
         self.beta_frames = config.beta_frames
 
     def push(self, state, action, reward, next_state, done):
         """Saves a transition."""
-        transition = (state, action, reward, next_state, done)
-
+        old_position = self.position
         max_priority = self.priorities.max() if self.buffer else 1.0
 
-        if len(self.buffer) < self.capacity:
-            self.buffer.append(transition)
-        else:
-            self.buffer[self.position] = transition
+        super().push(state, action, reward, next_state, done)
 
-        self.priorities[self.position] = max_priority
-        self.position = (self.position + 1) % self.capacity
+        self.priorities[old_position] = max_priority
 
     def sample(self, frame):
         """Select a sample using proportional prioritization.
@@ -46,13 +38,23 @@ class PrioritizedReplayMemory:
         else:
             priorities = self.priorities[:self.position]
 
-        # P(i) = (pi^alpha) / (sum(pk^alpha))
+        # (pi^alpha)
         probabilities = priorities ** self.alpha
+
+        # Zero out probabilities for multi-step
+        if self.multi_step > 1:
+            zero_indices = self.get_possible_indices(reverse=True)
+
+            for index in zero_indices:
+                probabilities[index] = 0.0
+
+        # P(i) = (pi^alpha) / (sum(pk^alpha))
         probabilities /= probabilities.sum()
 
         # Select sample based on computed probabilities
         indices = np.random.choice(len(self.buffer), self.batch_size, p=probabilities)
-        sample = [self.buffer[index] for index in indices]
+        # sample = [self.buffer[index] for index in indices]
+        sample = self.multi_step_sample(indices)
 
         # Importance sampling to reduce bias from the changed distribution
         # wi = [ (1/N) * (1/P(i)) ] ^ beta

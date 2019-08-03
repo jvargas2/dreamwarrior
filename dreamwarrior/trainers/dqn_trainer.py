@@ -1,5 +1,6 @@
 import logging
 import math
+from statistics import mean
 import random
 import numpy as np
 from collections import namedtuple
@@ -35,8 +36,10 @@ class DQNTrainer:
         self.prioritized = config.prioritized
         self.min_frames = config.min_frames
         self.frame_limit = config.frame_limit
+        self.episode_frame_max = config.episode_frame_max
         self.learning_rate = config.learning_rate
         self.adam_epsilon = config.adam_epsilon
+        self.multi_step = config.multi_step
 
     def train(self, frame=0, rewards=[], episode=1, optimizer_state=None):
         logging.info('Starting training...')
@@ -59,8 +62,8 @@ class DQNTrainer:
 
         frame_count = frame
         episode_rewards = rewards
+        episode_losses = []
 
-        # for i_episode in range(start_episode, NUM_FRAME):
         while frame_count < self.frame_limit:
             episode_reward = 0
             losses = []
@@ -75,14 +78,11 @@ class DQNTrainer:
                 frame_count += 4
 
                 if reward > 0:
-                    # Only add reward to count if its positive
-                    logging.info('t=%i got reward: %g' % (t, reward))
+                    logging.debug('t=%i got reward: %g' % (t, reward))
                     episode_reward += reward
                 elif reward < 0:
-                    logging.info('t=%i got penalty: %g' % (t, reward))
+                    logging.debug('t=%i got penalty: %g' % (t, reward))
                     episode_reward += reward
-                # else:
-                #     reward = -1
 
                 # Store the transition in memory
                 memory.push(state, action, reward, next_state, done)
@@ -92,7 +92,7 @@ class DQNTrainer:
 
                 # Perform one step of the optimization (on the target network)
                 loss = None
-                if len(memory) >= memory.batch_size and frame_count > self.min_frames:
+                if len(memory) >= memory.batch_size + self.multi_step and frame_count > self.min_frames:
                     if self.prioritized:
                         loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame_count)
                     else:
@@ -102,17 +102,20 @@ class DQNTrainer:
                     if self.prioritized:
                         memory.update_priorities(indices, priorities)
 
-                    losses.append(loss)
+                    episode_losses.append(loss)
                     if frame_count % 1000 == 0:
-                        average_loss = sum(losses) / len(losses)
-                        logging.info('f=%dk loss: %f' % (frame_count / 1000, average_loss))
-                        losses = []
+                        average_loss = mean(episode_losses)
+                        logging.debug('f=%dk episode loss: %f' % (frame_count / 1000, average_loss))
 
-                if done or frame_count >= self.frame_limit:
+                if done or frame_count >= self.frame_limit or frame_count >= self.episode_frame_max:
                     break
+
+            mean_loss = mean(episode_losses) if episode_losses else 1
+            losses.append(mean_loss)
                 
             logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)
+            logging.info('Episode average loss: %f' % mean_loss)
             logging.info('Training Progress: %dk/%dk (%.2f%%)' % (
                 frame_count / 1000,
                 self.frame_limit / 1000,

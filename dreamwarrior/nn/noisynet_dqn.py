@@ -8,10 +8,12 @@ class NoisyNetDQN(nn.Module):
     def __init__(self, input_shape, num_actions, num_atoms=0):
         super(NoisyNetDQN, self).__init__()
 
+        # Save attributes for later
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_atoms = num_atoms
 
+        # Convolutional layer
         self.features = nn.Sequential(
             nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
             nn.ReLU(),
@@ -21,16 +23,17 @@ class NoisyNetDQN(nn.Module):
             nn.ReLU()
         )
 
-        self.noisy1 = Noisy(self.feature_size(), 512)
+        # Calculate sizes
+        zeros = torch.zeros(1, *self.input_shape)
+        feature_size = self.features(zeros).view(1, -1).size(1)
+        output_size = num_actions
 
         if num_atoms > 0:
-            self.noisy2 = Noisy(512, num_actions * num_atoms)
-        else:
-            self.noisy2 = Noisy(512, num_actions)
+            output_size *= num_atoms
 
-    def feature_size(self):
-        zeros = torch.zeros(1, *self.input_shape)
-        return self.features(zeros).view(1, -1).size(1)
+        # Noisy layers
+        self.noisy1 = Noisy(feature_size, 512)
+        self.noisy2 = Noisy(512, output_size)
 
     def forward(self, x):
         x = self.features(x)

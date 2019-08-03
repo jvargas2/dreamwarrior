@@ -36,7 +36,7 @@ class DQNAgent:
             self.model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
 
         self.noisy = config.noisy
-        self.gamma = config.gamma
+        self.gamma = config.gamma ** config.multi_step
         self.prioritized_memory = config.prioritized
         self.frame_skip = config.frame_skip
         self.frame_update = config.frame_update
@@ -59,14 +59,14 @@ class DQNAgent:
             q_values = self.model(state)
             action = q_values.max(1)[1].item()
 
-        if self.noisy:
-            self.model.reset_noise()
-
         return action
 
     def act(self, state, frame_count):
+        action = None
+
         if self.noisy:
-            return self.select_action(state, frame_count)
+            action = self.select_action(state, frame_count)
+            self.model.reset_noise()
         else:
             # Epsilon greedy strategy
             start = self.epsilon_start
@@ -77,11 +77,11 @@ class DQNAgent:
             sample = random.random()
             
             if sample > epsilon_threshold:
-                action = self.select_action(state)
+                action = self.select_action(state, frame_count)
             else:
                 action = self.random_action()
 
-            return action
+        return action
 
     def optimize_model(self, optimizer, memory, frame=None):
         """Optimize the model.
