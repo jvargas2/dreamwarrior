@@ -22,7 +22,7 @@ class DQNTrainer:
     agent = None
 
     def __init__(self, env, config):
-        self.device = torch.device(config.device)
+        self.device = config.device
         self.env = env
         self.config = config
 
@@ -36,12 +36,13 @@ class DQNTrainer:
         self.prioritized = config.prioritized
         self.min_frames = config.min_frames
         self.frame_limit = config.frame_limit
+        self.frame_skip = config.frame_skip
         self.episode_frame_max = config.episode_frame_max
         self.learning_rate = config.learning_rate
         self.adam_epsilon = config.adam_epsilon
         self.multi_step = config.multi_step
 
-    def train(self, frame=0, rewards=[], episode=1, optimizer_state=None):
+    def train(self):
         logging.info('Starting training...')
         env = self.env
         device = self.device
@@ -52,19 +53,17 @@ class DQNTrainer:
             eps=self.adam_epsilon
         )
 
-        if optimizer_state is not None:
-            optimizer.load_state_dict(optimizer_state)
-
         if self.prioritized:
             memory = PrioritizedReplayMemory(self.config)
         else:
             memory = ReplayMemory(self.config)
 
-        frame_count = frame
-        episode_rewards = rewards
+        episode = 1
+        frame = 1
+        episode_rewards = []
         episode_losses = []
 
-        while frame_count < self.frame_limit:
+        while frame < self.frame_limit:
             episode_reward = 0
             losses = []
 
@@ -72,10 +71,10 @@ class DQNTrainer:
             state = env.get_full_state()
 
             for t in count():
-                action = self.agent.act(state, frame_count)
+                action = self.agent.act(state, frame)
 
                 next_state, reward, done, _ = env.step(action)
-                frame_count += 4
+                frame += self.frame_skip
 
                 if reward > 0:
                     logging.debug('t=%i got reward: %g' % (t, reward))
@@ -92,22 +91,22 @@ class DQNTrainer:
 
                 # Perform one step of the optimization (on the target network)
                 loss = None
-                if len(memory) >= memory.batch_size + self.multi_step and frame_count > self.min_frames:
+                if len(memory) >= memory.batch_size + self.multi_step and frame > self.min_frames:
                     if self.prioritized:
-                        loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame_count)
+                        loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame)
                     else:
-                        loss, _, _ = self.agent.optimize_model(optimizer, memory, frame_count)
+                        loss, _, _ = self.agent.optimize_model(optimizer, memory, frame)
 
                 if loss is not None:
                     if self.prioritized:
                         memory.update_priorities(indices, priorities)
 
                     episode_losses.append(loss)
-                    if frame_count % 1000 == 0:
+                    if frame % 1000 == 0:
                         average_loss = mean(episode_losses)
-                        logging.debug('f=%dk episode loss: %f' % (frame_count / 1000, average_loss))
+                        logging.debug('f=%dk episode loss: %f' % (frame / 1000, average_loss))
 
-                if done or frame_count >= self.frame_limit or t * 4 >= self.episode_frame_max:
+                if done or frame >= self.frame_limit or t * 4 >= self.episode_frame_max:
                     break
 
             mean_loss = mean(episode_losses) if episode_losses else 1
@@ -117,38 +116,14 @@ class DQNTrainer:
             logging.info('Final reward: %d' % episode_reward)
             logging.info('Episode average loss: %f' % mean_loss)
             logging.info('Training Progress: %dk/%dk (%.2f%%)' % (
-                frame_count / 1000,
+                frame / 1000,
                 self.frame_limit / 1000,
-                (frame_count / self.frame_limit) * 100
+                (frame / self.frame_limit) * 100
             ))
             episode += 1
             episode_rewards.append(episode_reward)
-            self.save_progress(frame_count, episode_rewards, optimizer)
+            self.agent.save()
 
-        self.agent.save()
         env.close()
         logging.info('Finished training! Final rewards per episode:')
         logging.info(episode_rewards)
-
-    def save_progress(self, frame, rewards, optimizer):
-        episode = len(rewards) + 1
-
-        state = {
-            'frame': frame,
-            'rewards': rewards,
-            'episode': episode,
-            'optimizer': optimizer.state_dict(),
-            'model': self.agent.get_state_dict()
-        }
-        torch.save(state, 'training_progress.pth')
-        logging.info('Saved training after finishing episode %s.' % str(episode - 1))
-
-    def continue_training(self, filepath):
-        state = torch.load(filepath, map_location=self.device)
-        episode = state['episode']
-
-        self.agent.load_state_dict(state['model'])
-        self.env.episode = episode
-
-        logging.info('Continuing training at episode %d...' % episode)
-        self.train(state['frame'], state['rewards'], episode, state['optimizer'])

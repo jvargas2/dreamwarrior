@@ -1,5 +1,7 @@
 import os
-import configparser
+from configparser import ConfigParser
+
+from torch import device
 
 class DreamConfig:
     def __init__(self, configfile=None):
@@ -7,13 +9,15 @@ class DreamConfig:
             dirname = os.path.dirname(__file__)
             configfile = os.path.join(dirname, 'dream.ini')
 
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         config.read(configfile)
+
+        # Set device
+        self.device = self.set_device(-1)
 
         # Set environment parameters
         environment = config['environment']
         self.height = environment.getint('height')
-        self.device = environment['device']
         self.frame_skip = environment.getint('frame_skip')
 
         # Set model components
@@ -51,4 +55,10 @@ class DreamConfig:
         self.beta_start = memory.getfloat('beta_start')
         self.beta_frames = int(memory.getfloat('beta_frames'))
         self.multi_step = memory.getint('multi_step')
+
+    def set_device(self, device_index):
+        if device_index < 0:
+            self.device = device('cpu')
+        else:
+            self.device = device('cuda:%d' % device_index)
         

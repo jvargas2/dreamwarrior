@@ -7,22 +7,33 @@ from PIL import Image
 import torch
 from torchvision import transforms
 
-from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
+from dreamwarrior.agents import DQNAgent, DoubleDQNAgent, CategoricalDQNAgent
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 class Runner:
-    device = None
-    env = None
-    player_one = None
+    def __init__(self, env, agent_file):
+        data = torch.load(agent_file, map_location='cpu')
+        agent_class = data['agent_class']
+        config = data['config']
 
-    def __init__(self, env, player_one, device=None):
-        self.device = torch.device('cpu' if device is None else device)
+        if agent_class == 'DQNAgent':
+            agent_class = DQNAgent
+        elif agent_class == 'DoubleDQNAgent':
+            agent_class = DoubleDQNAgent
+        elif agent_class == 'CategoricalDQNAgent':
+            agent_class = CategoricalDQNAgent
+        else:
+            raise ValueError('%s is not a valid agent class.' % agent_class)
+
+        self.device = config.device
         self.env = env
+        self.frame_skip = config.frame_skip
 
-        agent = DoubleDQNAgent(env, config)
-        agent.load(player_one)
-        self.player_one = agent
+        agent = agent_class(env, config)
+        agent.load(agent_file)
+        agent.model.eval()
+        self.agent = agent
 
     def run(self):
         env = self.env
@@ -30,13 +41,15 @@ class Runner:
 
         # Initialize the environment and state
         env.reset()
-        state = env.get_state()
+        state = env.get_full_state()
+        frame = 0
         final_reward = 0
 
         for t in count():
-            action = self.player_one.select_action(state)
+            action = self.agent.select_action(state, frame)
 
             state, reward, done, _ = env.step(action)
+            frame += self.frame_skip
             final_reward += reward
 
             if reward > 0:

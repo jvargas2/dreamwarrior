@@ -8,15 +8,13 @@ from datetime import datetime
 
 import retro
 
-import dreamwarrior
 from dreamwarrior import DreamEnv, DreamConfig
 from dreamwarrior.trainers import DQNTrainer
-from dreamwarrior.agents import DQNAgent, DoubleDQNAgent
 from dreamwarrior.runners import Runner
 
 def train(args, config):
     if args.cuda is not None:
-        config.device = 'cuda:' + args.cuda
+        config.set_device(args.cuda)
 
     env = DreamEnv(config, args.game, name=args.name, watching=args.watching, record=True)
 
@@ -29,9 +27,8 @@ def train(args, config):
 
 def run(args, config):
     env = DreamEnv(config, args.game, watching=True)
-
-    trainer = DQNTrainer(env, config)
-    # trainer.run()
+    runner = Runner(env, args.agent)
+    runner.run()
 
 def play_movie(args, config):
     movie = retro.Movie(args.filename)

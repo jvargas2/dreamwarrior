@@ -20,12 +20,11 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     def push(self, state, action, reward, next_state, done):
         """Saves a transition."""
-        old_position = self.position
         max_priority = self.priorities.max() if self.buffer else 1.0
 
         super().push(state, action, reward, next_state, done)
 
-        self.priorities[old_position] = max_priority
+        self.priorities[self.position] = max_priority
 
     def sample(self, frame):
         """Select a sample using proportional prioritization.
@@ -38,23 +37,13 @@ class PrioritizedReplayMemory(ReplayMemory):
         else:
             priorities = self.priorities[:self.position]
 
-        # (pi^alpha)
-        probabilities = priorities ** self.alpha
-
-        # Zero out probabilities for multi-step
-        if self.multi_step > 1:
-            zero_indices = self.get_possible_indices(reverse=True)
-
-            for index in zero_indices:
-                probabilities[index] = 0.0
-
         # P(i) = (pi^alpha) / (sum(pk^alpha))
+        probabilities = priorities ** self.alpha
         probabilities /= probabilities.sum()
 
         # Select sample based on computed probabilities
         indices = np.random.choice(len(self.buffer), self.batch_size, p=probabilities)
-        # sample = [self.buffer[index] for index in indices]
-        sample = self.multi_step_sample(indices)
+        sample = [self.buffer[index] for index in indices]
 
         # Importance sampling to reduce bias from the changed distribution
         # wi = [ (1/N) * (1/P(i)) ] ^ beta

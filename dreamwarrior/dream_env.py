@@ -25,7 +25,7 @@ class DreamEnv(RetroEnv):
 
     def __init__(self, config, game, name=None, inttype=None, watching=False, **kwargs):
         self.frame_skip = config.frame_skip
-        self.device = torch.device(config.device)
+        self.device = config.device
         self.height = config.height
 
         custom_data_directory = os.path.dirname(os.path.realpath(__file__))

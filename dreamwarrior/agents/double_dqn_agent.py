@@ -62,10 +62,6 @@ class DoubleDQNAgent(DQNAgent):
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def load(self, path=None):
-        if path is None:
-            super().load()
-        else:
-            super().load(path=path)
-
+    def load(self, path='test-agent.pt'):
+        super().load(path=path)
         self.update_target()

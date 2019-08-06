@@ -14,7 +14,7 @@ class DQNAgent:
     noisy = False
 
     def __init__(self, env, config):
-        self.device = torch.device(config.device)
+        self.device = config.device
         self.env = env
         self.config = config
         self.num_actions = env.action_space.n
@@ -36,7 +36,7 @@ class DQNAgent:
             self.model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
 
         self.noisy = config.noisy
-        self.gamma = config.gamma ** config.multi_step
+        self.gamma = config.gamma
         self.prioritized_memory = config.prioritized
         self.frame_skip = config.frame_skip
         self.frame_update = config.frame_update
@@ -132,7 +132,7 @@ class DQNAgent:
     def get_parameters(self):
         return self.model.parameters()
 
-    def get_state_dict(self):
+    def state_dict(self):
         return self.model.state_dict()
 
     def load_state_dict(self, state_dict):
@@ -145,10 +145,17 @@ class DQNAgent:
     Will likely want to switch to method 3 when saving the final model versions
     """
     def save(self):
-        torch.save(self.model.state_dict(), 'test-agent.pth')
+        torch.save({
+            'agent_class': self.__class__.__name__,
+            'config': self.config,
+            'state_dict': self.state_dict(),
+        }, 'test-agent.pt')
+
         logging.info('Saved model.')
 
-    def load(self, path='test-agent.pth'):
-        self.model.load_state_dict(torch.load(path, map_location=self.device))
+    def load(self, path='test-agent.pt'):
+        data = torch.load(path, map_location=self.device)
+        self.model.load_state_dict(data['state_dict'])
         self.model.eval()
+
         logging.info('Loaded model.')
