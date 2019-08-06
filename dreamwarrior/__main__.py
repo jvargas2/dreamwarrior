@@ -19,11 +19,7 @@ def train(args, config):
     env = DreamEnv(config, args.game, name=args.name, watching=args.watching, record=True)
 
     trainer = DQNTrainer(env, config)
-
-    if args.continue_file:
-        trainer.continue_training(args.continue_file)
-    else:
-        trainer.train()
+    trainer.train()
 
 def run(args, config):
     env = DreamEnv(config, args.game, watching=True)
