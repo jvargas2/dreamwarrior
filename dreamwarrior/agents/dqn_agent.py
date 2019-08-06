@@ -145,15 +145,18 @@ class DQNAgent:
     Will likely want to switch to method 3 when saving the final model versions
     """
     def save(self):
+        agent_name = '%s-agent.pt' % self.env.name
+
         torch.save({
+            'game': self.env.gamename,
             'agent_class': self.__class__.__name__,
             'config': self.config,
             'state_dict': self.state_dict(),
-        }, 'test-agent.pt')
+        }, agent_name)
 
         logging.info('Saved model.')
 
-    def load(self, path='test-agent.pt'):
+    def load(self, path):
         data = torch.load(path, map_location=self.device)
         self.model.load_state_dict(data['state_dict'])
         self.model.eval()

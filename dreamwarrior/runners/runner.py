@@ -7,15 +7,19 @@ from PIL import Image
 import torch
 from torchvision import transforms
 
+from dreamwarrior import DreamEnv
 from dreamwarrior.agents import DQNAgent, DoubleDQNAgent, CategoricalDQNAgent
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 class Runner:
-    def __init__(self, env, agent_file):
+    def __init__(self, agent_file):
         data = torch.load(agent_file, map_location='cpu')
+        game = data['game']
         agent_class = data['agent_class']
         config = data['config']
+
+        env = DreamEnv(config, game, watching=True)
 
         if agent_class == 'DQNAgent':
             agent_class = DQNAgent

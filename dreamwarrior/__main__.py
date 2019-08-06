@@ -22,8 +22,7 @@ def train(args, config):
     trainer.train()
 
 def run(args, config):
-    env = DreamEnv(config, args.game, watching=True)
-    runner = Runner(env, args.agent)
+    runner = Runner(args.agent)
     runner.run()
 
 def play_movie(args, config):

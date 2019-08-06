@@ -17,12 +17,6 @@ class DreamEnv(RetroEnv):
     """DreamEnv is a child of the Gym Retro RetroEnv class. This class add a custom path for the
     games and a few functions to make training/playing easier.
     """
-    device = None
-    name = 'unnamed'
-    watching = False
-    state_buffer = None
-    episode = 1
-
     def __init__(self, config, game, name=None, inttype=None, watching=False, **kwargs):
         self.frame_skip = config.frame_skip
         self.device = config.device
@@ -44,13 +38,17 @@ class DreamEnv(RetroEnv):
 
         if name is not None:
             self.name = name
+        else:
+            self.name = 'unnamed'
 
         self.watching = watching
+        self.episode = 1
         self.state_buffer = deque(maxlen=4)
         empty_state = self.get_frame()
 
         for _ in range(self.frame_skip):
             self.state_buffer.append(empty_state)
+
 
     def get_frame(self):
         """Get retro env render as a torch tensor.
