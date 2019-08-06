@@ -6,7 +6,7 @@ class DQN(nn.Module):
     input_shape = None
     num_actions = 0
 
-    def __init__(self, input_shape, num_actions, num_atoms=0):
+    def __init__(self, input_shape, num_actions, num_atoms=1):
         super(DQN, self).__init__()
 
         self.input_shape = input_shape
@@ -22,11 +22,10 @@ class DQN(nn.Module):
             nn.ReLU()
         )
 
-        output_size = num_actions * num_atoms if num_atoms > 0 else num_actions
         self.fully_connected = nn.Sequential(
             nn.Linear(self.feature_size(), 512),
             nn.ReLU(),
-            nn.Linear(512, output_size)
+            nn.Linear(512, num_actions * num_atoms)
         )
 
     def feature_size(self):

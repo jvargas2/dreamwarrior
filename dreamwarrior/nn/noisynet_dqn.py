@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from dreamwarrior.nn import Noisy
 
 class NoisyNetDQN(nn.Module):
-    def __init__(self, input_shape, num_actions, num_atoms=0):
+    def __init__(self, input_shape, num_actions, num_atoms=1):
         super(NoisyNetDQN, self).__init__()
 
         # Save attributes for later
@@ -26,14 +26,10 @@ class NoisyNetDQN(nn.Module):
         # Calculate sizes
         zeros = torch.zeros(1, *self.input_shape)
         feature_size = self.features(zeros).view(1, -1).size(1)
-        output_size = num_actions
-
-        if num_atoms > 0:
-            output_size *= num_atoms
 
         # Noisy layers
         self.noisy1 = Noisy(feature_size, 512)
-        self.noisy2 = Noisy(512, output_size)
+        self.noisy2 = Noisy(512, num_actions * num_atoms)
 
     def forward(self, x):
         x = self.features(x)
