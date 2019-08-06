@@ -61,7 +61,7 @@ def main():
     parser = argparse.ArgumentParser(prog='dreamwarrior', description='Train and test Gym Retro agents.')
     parser.add_argument('-g', '--game', default='NightmareOnElmStreet-Nes', help='Name of game to use for environment.')
     parser.add_argument('-p', '--print_logs', action='store_true', help='Use to print logs to console.')
-    parser.add_argument('-c', '--cuda', help='Which CUDA device to use. Only supply integer.')
+    parser.add_argument('-c', '--cuda', type=int, help='Which CUDA device to use. Only supply integer.')
     parser.add_argument('-i', '--ini', help='.ini config file to use')
     subparsers = parser.add_subparsers()
 
@@ -69,7 +69,6 @@ def main():
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
     parser_train.add_argument('-n', '--name', help='Name of model for properly naming files.')
-    parser_train.add_argument('-c', '--continue_file', help='.pth path when continuing training.')
     parser_train.set_defaults(func=train)
 
     # run arguments
