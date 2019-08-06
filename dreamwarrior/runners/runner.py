@@ -41,7 +41,7 @@ class Runner:
 
         # Initialize the environment and state
         env.reset()
-        state = env.get_full_state()
+        state = env.get_state()
         frame = 0
         final_reward = 0
 

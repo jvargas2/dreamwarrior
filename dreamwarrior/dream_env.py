@@ -27,6 +27,7 @@ class DreamEnv(RetroEnv):
         self.frame_skip = config.frame_skip
         self.device = config.device
         self.height = config.height
+        self.width = config.width
 
         custom_data_directory = os.path.dirname(os.path.realpath(__file__))
         custom_data_directory += '/data'
@@ -45,13 +46,13 @@ class DreamEnv(RetroEnv):
             self.name = name
 
         self.watching = watching
-        self.state_buffer = deque([], maxlen=self.frame_skip)
-        empty_state = self.get_state()
+        self.state_buffer = deque(maxlen=4)
+        empty_state = self.get_frame()
 
         for _ in range(self.frame_skip):
             self.state_buffer.append(empty_state)
 
-    def get_state(self):
+    def get_frame(self):
         """Get retro env render as a torch tensor.
 
         Returns: A torch tensor made from the RGB pixels
@@ -61,7 +62,8 @@ class DreamEnv(RetroEnv):
         screen_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Grayscale(),
-            transforms.Resize(self.height, interpolation=Image.CUBIC),
+            transforms.Resize([self.height, self.width], interpolation=Image.CUBIC),
+            # transforms.CenterCrop([self.height + 10, self.width])
             transforms.ToTensor()
         ])
 
@@ -69,14 +71,12 @@ class DreamEnv(RetroEnv):
 
         return screen.to(self.device)
 
-    def get_full_state(self):
+    def get_state(self):
         """Ensures the state will contain the full four states.
         """
-        single_state = self.get_state()
-        self.state_buffer.append(single_state)
-        full_state = torch.cat(list(self.state_buffer))
+        state = torch.cat(list(self.state_buffer))
 
-        return full_state
+        return state
 
     def reset(self):
         """Mostly original code from RetroEnv. Be careful when changing.
@@ -114,18 +114,23 @@ class DreamEnv(RetroEnv):
         total_reward, done, info = 0, False, None
         retro_action = np.zeros((9,), dtype=int)
         retro_action[action] = 1
+        frame_buffer = deque(maxlen=2)
 
-        for _ in range(self.frame_skip):
-            _, reward, done, info = super().step(retro_action)
+        for i in range(self.frame_skip):
+            _, reward, done, _ = super().step(retro_action)
             total_reward += reward
 
             if self.watching:
                 self.render()
 
-            self.state_buffer.append(self.get_state())
+            frame_buffer.append(self.get_frame())
 
             if done:
                 break
+
+        frame_buffer = torch.stack(list(frame_buffer))
+        maxed_frame = frame_buffer.max(0)[0]
+        self.state_buffer.append(maxed_frame)
 
         state = torch.cat(list(self.state_buffer))
 

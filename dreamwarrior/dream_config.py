@@ -18,6 +18,7 @@ class DreamConfig:
         # Set environment parameters
         environment = config['environment']
         self.height = environment.getint('height')
+        self.width = environment.getint('width')
         self.frame_skip = environment.getint('frame_skip')
 
         # Set model components

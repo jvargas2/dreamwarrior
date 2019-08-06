@@ -19,7 +19,7 @@ class DQNAgent:
         self.config = config
         self.num_actions = env.action_space.n
        
-        init_screen = env.get_full_state()
+        init_screen = env.get_state()
 
         if config.dueling and config.noisy:
             self.model_class = NoisyNetDueling

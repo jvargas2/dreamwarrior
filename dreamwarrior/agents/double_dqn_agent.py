@@ -7,7 +7,7 @@ class DoubleDQNAgent(DQNAgent):
 
     def __init__(self, env, config):
         super().__init__(env, config)
-        init_screen = env.get_full_state()
+        init_screen = env.get_state()
         
         self.target_model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
         self.target_model.load_state_dict(self.model.state_dict())

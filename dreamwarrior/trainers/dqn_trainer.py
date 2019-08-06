@@ -68,7 +68,7 @@ class DQNTrainer:
             losses = []
 
             env.reset()
-            state = env.get_full_state()
+            state = env.get_state()
 
             for t in count():
                 action = self.agent.act(state, frame)
@@ -91,7 +91,7 @@ class DQNTrainer:
 
                 # Perform one step of the optimization (on the target network)
                 loss = None
-                if len(memory) >= memory.batch_size + self.multi_step and frame > self.min_frames:
+                if len(memory) >= memory.batch_size and frame > self.min_frames:
                     if self.prioritized:
                         loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame)
                     else:
