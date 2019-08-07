@@ -13,16 +13,14 @@ from dreamwarrior.trainers import DQNTrainer
 from dreamwarrior.runners import Runner
 
 def train(args, config):
-    if args.cuda is not None:
-        config.set_device(args.cuda)
-
+    config.set_device(args.cuda)
     env = DreamEnv(config, args.game, name=args.name, watching=args.watching, record=True)
 
     trainer = DQNTrainer(env, config)
     trainer.train()
 
 def run(args, config):
-    runner = Runner(args.agent)
+    runner = Runner(args.agent, args.cuda)
     runner.run()
 
 def play_movie(args, config):
@@ -56,7 +54,7 @@ def main():
     parser = argparse.ArgumentParser(prog='dreamwarrior', description='Train and test Gym Retro agents.')
     parser.add_argument('-g', '--game', default='NightmareOnElmStreet-Nes', help='Name of game to use for environment.')
     parser.add_argument('-p', '--print_logs', action='store_true', help='Use to print logs to console.')
-    parser.add_argument('-c', '--cuda', type=int, help='Which CUDA device to use. Only supply integer.')
+    parser.add_argument('-c', '--cuda', type=int, default=-1, help='Which CUDA device to use. Only supply integer.')
     parser.add_argument('-i', '--ini', help='.ini config file to use')
     subparsers = parser.add_subparsers()
 
