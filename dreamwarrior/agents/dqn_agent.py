@@ -118,7 +118,7 @@ class DQNAgent:
         if self.noisy:
             self.model.reset_noise()
         
-        return loss, indices, priorities
+        return loss.item(), indices, priorities
 
     def calculate_loss(self, q_value, q_star_value, weights=None):
         if weights is not None:

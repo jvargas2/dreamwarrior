@@ -90,27 +90,20 @@ class DQNTrainer:
                 state = next_state
 
                 # Perform one step of the optimization (on the target network)
-                loss = None
+                loss, indices, priorities = None, None, None
                 if len(memory) >= memory.batch_size and frame > self.min_frames:
-                    if self.prioritized:
-                        loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame)
-                    else:
-                        loss, _, _ = self.agent.optimize_model(optimizer, memory, frame)
+                    loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame)
 
                 if loss is not None:
+                    losses.append(loss)
                     if self.prioritized:
                         memory.update_priorities(indices, priorities)
-
-                    episode_losses.append(loss)
-                    if frame % 1000 == 0:
-                        average_loss = mean(episode_losses)
-                        logging.debug('f=%dk episode loss: %f' % (frame / 1000, average_loss))
 
                 if done or frame >= self.frame_limit or t * 4 >= self.episode_frame_max:
                     break
 
-            mean_loss = mean(episode_losses) if episode_losses else 1
-            losses.append(mean_loss)
+            mean_loss = mean(losses) if len(losses) > 0 else 0
+            episode_losses.append(mean_loss)
                 
             logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)
@@ -127,3 +120,5 @@ class DQNTrainer:
         env.close()
         logging.info('Finished training! Final rewards per episode:')
         logging.info(episode_rewards)
+        logging.info('----------Losses:')
+        logging.info(episode_losses)
