@@ -36,7 +36,10 @@ class DQNAgent:
         else:
             self.model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
             self.target_model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
+    
+        self.target_model.load_state_dict(self.model.state_dict())
 
+        self.double = config.double
         self.noisy = config.noisy
         self.gamma = config.gamma
         self.prioritized_memory = config.prioritized
@@ -110,33 +113,42 @@ class DQNAgent:
         q_values = self.model(state)
         q_value = q_values.gather(1, action) # Q-Values for selected actions
 
+        # Get target q values for next state
+        next_target_q_values = self.target_model(next_state)
+
         # Calculate estimated q* value
-        # Rt+1 + Ɣ max_a q*(s', a')
-        next_q_values = self.target_model(next_state) 
-        next_max_q_value = next_q_values.max(1)[0].unsqueeze(1) # Max Q value in next state
-        q_star_value = reward + self.gamma * next_max_q_value * (1 - done)
+        if self.double:
+            # R' + Ɣ q(s', max_a(s', a'; ϴ); ϴ')
+            next_q_values = self.model(next_state)
+            next_q_value = next_target_q_values.gather(1, torch.max(next_q_values, 1)[1].unsqueeze(1))
+        else:
+            # R' + Ɣ max_a q(s', a'; ϴ')
+            next_q_value = next_target_q_values.max(1)[0].unsqueeze(1) # Max Q value in next state
+        
+        target_q_value = reward + self.gamma * next_q_value * (1 - done) # Bellman Q*
         
         # Compute Huber loss
-        loss, priorities = self.calculate_loss(q_value, q_star_value, weights)
-            
+        loss, priorities = self.calculate_loss(q_value, target_q_value, weights)
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         if self.noisy:
             self.model.reset_noise()
+            self.target_model.reset_noise()
         
         return loss.item(), indices, priorities
 
-    def calculate_loss(self, q_value, q_star_value, weights=None):
+    def calculate_loss(self, q_value, target_q_value, weights=None):
         if weights is not None:
-            loss = F.smooth_l1_loss(q_value, q_star_value, reduction='none')
+            loss = F.smooth_l1_loss(q_value, target_q_value, reduction='none')
             loss *= torch.tensor(weights, device=self.device).unsqueeze(1)
             priorities = loss + 1e-5
             loss = loss.mean()
             return loss, priorities
         else:
-            loss = F.smooth_l1_loss(q_value, q_star_value)
+            loss = F.smooth_l1_loss(q_value, target_q_value)
             return loss, None
 
     def parameters(self):
@@ -173,5 +185,8 @@ class DQNAgent:
         data = torch.load(path, map_location=self.device)
         self.model.load_state_dict(data['state_dict'])
         self.model.eval()
+
+        self.update_target()
+        self.target_model.eval()
 
         logging.info('Loaded model.')

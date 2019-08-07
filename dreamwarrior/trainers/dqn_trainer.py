@@ -13,7 +13,7 @@ import torch.optim as optim
 from torchvision import transforms
 
 import dreamwarrior
-from dreamwarrior.agents import DQNAgent, DoubleDQNAgent, CategoricalDQNAgent
+from dreamwarrior.agents import DQNAgent, CategoricalDQNAgent
 from dreamwarrior.memory import ReplayMemory, PrioritizedReplayMemory
 
 class DQNTrainer:
@@ -28,8 +28,6 @@ class DQNTrainer:
 
         if config.categorical:
             self.agent = CategoricalDQNAgent(env, config)
-        elif config.double:
-            self.agent = DoubleDQNAgent(env, config)
         else:
             self.agent = DQNAgent(env, config)
 

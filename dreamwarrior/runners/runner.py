@@ -8,7 +8,7 @@ import torch
 from torchvision import transforms
 
 from dreamwarrior import DreamEnv
-from dreamwarrior.agents import DQNAgent, DoubleDQNAgent, CategoricalDQNAgent
+from dreamwarrior.agents import DQNAgent, CategoricalDQNAgent
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
