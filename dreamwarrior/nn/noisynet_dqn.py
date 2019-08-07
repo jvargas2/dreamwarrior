@@ -37,7 +37,7 @@ class NoisyNetDQN(nn.Module):
         x = F.relu(self.noisy1(x))
         x = self.noisy2(x)
 
-        if self.num_atoms > 0:
+        if self.num_atoms > 1:
             x = F.softmax(x.view(-1, self.num_atoms), dim=1)
             x = x.view(-1, self.num_actions, self.num_atoms)
 

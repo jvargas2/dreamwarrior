@@ -32,8 +32,10 @@ class DQNAgent:
 
         if config.categorical:
             self.model = self.model_class(init_screen.shape, self.num_actions, config.atoms).to(self.device)
+            self.target_model = self.model_class(init_screen.shape, self.num_actions, config.atoms).to(self.device)
         else:
             self.model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
+            self.target_model = self.model_class(init_screen.shape, self.num_actions).to(self.device)
 
         self.noisy = config.noisy
         self.gamma = config.gamma
@@ -96,18 +98,18 @@ class DQNAgent:
         else:
             state, action, reward, next_state, done = memory.sample()
 
-        # Get Q values for every action in first and second states
+        # Get estimated q values
         q_values = self.model(state)
-        next_q_values = self.model(next_state) 
+        q_value = q_values.gather(1, action) # Q-Values for selected actions
 
-        q_value = q_values.gather(1, action) # Actual action-value
-        next_q_value = next_q_values.max(1)[0].unsqueeze(1) # Max Q value in second state
-
-        # Calculate expected return
-        expected_q_value = reward + self.gamma * next_q_value * (1 - done)
+        # Calculate estimated q* value
+        # Rt+1 + Ɣ max_a q*(s', a')
+        next_q_values = self.target_model(next_state) 
+        next_max_q_value = next_q_values.max(1)[0].unsqueeze(1) # Max Q value in next state
+        q_star_value = reward + self.gamma * next_max_q_value * (1 - done)
         
         # Compute Huber loss
-        loss, priorities = self.calculate_loss(q_value, expected_q_value, weights)
+        loss, priorities = self.calculate_loss(q_value, q_star_value, weights)
             
         optimizer.zero_grad()
         loss.backward()
@@ -118,15 +120,15 @@ class DQNAgent:
         
         return loss, indices, priorities
 
-    def calculate_loss(self, q_value, expected_q_value, weights=None):
+    def calculate_loss(self, q_value, q_star_value, weights=None):
         if weights is not None:
-            loss = F.smooth_l1_loss(q_value, expected_q_value, reduction='none')
+            loss = F.smooth_l1_loss(q_value, q_star_value, reduction='none')
             loss *= torch.tensor(weights, device=self.device).unsqueeze(1)
             priorities = loss + 1e-5
             loss = loss.mean()
             return loss, priorities
         else:
-            loss = F.smooth_l1_loss(q_value, expected_q_value)
+            loss = F.smooth_l1_loss(q_value, q_star_value)
             return loss, None
 
     def get_parameters(self):
