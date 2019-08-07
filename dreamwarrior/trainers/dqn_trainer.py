@@ -121,4 +121,4 @@ class DQNTrainer:
         logging.info('Finished training! Final rewards per episode:')
         logging.info(episode_rewards)
         logging.info('----------Losses:')
-        logging.info(episode_losses)
+        logging.info([float('%.4f' % loss) for loss in episode_losses])
