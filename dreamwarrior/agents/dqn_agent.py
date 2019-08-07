@@ -42,6 +42,7 @@ class DQNAgent:
         self.prioritized_memory = config.prioritized
         self.frame_skip = config.frame_skip
         self.frame_update = config.frame_update
+        self.update_counter = 1
 
         if not self.noisy:
             self.epsilon_start = config.epsilon_start
@@ -82,6 +83,13 @@ class DQNAgent:
                 action = self.select_action(state, frame_count)
             else:
                 action = self.random_action()
+
+        # Update target if appropriate
+        if self.update_counter >= self.frame_update:
+            self.update_target()
+            self.update_counter = 1
+        else:
+            self.update_counter += self.frame_skip
 
         return action
 
@@ -131,7 +139,7 @@ class DQNAgent:
             loss = F.smooth_l1_loss(q_value, q_star_value)
             return loss, None
 
-    def get_parameters(self):
+    def parameters(self):
         return self.model.parameters()
 
     def state_dict(self):
@@ -139,6 +147,9 @@ class DQNAgent:
 
     def load_state_dict(self, state_dict):
         self.model.load_state_dict(state_dict)
+
+    def update_target(self):
+        self.target_model.load_state_dict(self.model.state_dict())
 
     """
     For saving and loading:

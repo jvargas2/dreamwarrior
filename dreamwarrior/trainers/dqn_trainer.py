@@ -48,7 +48,7 @@ class DQNTrainer:
         device = self.device
         
         optimizer = optim.Adam(
-            self.agent.get_parameters(),
+            self.agent.parameters(),
             lr=self.learning_rate,
             eps=self.adam_epsilon
         )
