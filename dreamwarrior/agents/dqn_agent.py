@@ -54,10 +54,9 @@ class DQNAgent:
 
     def random_action(self):
         action = random.randrange(self.num_actions)
-
         return action
 
-    def select_action(self, state, frame_count):
+    def select_action(self, state):
         # Get state out of batch
         state = state.unsqueeze(0)
 
@@ -67,11 +66,11 @@ class DQNAgent:
 
         return action
 
-    def act(self, state, frame_count):
+    def act(self, state):
         action = None
 
         if self.noisy:
-            action = self.select_action(state, frame_count)
+            action = self.select_action(state)
             self.model.reset_noise()
         else:
             # Epsilon greedy strategy
@@ -79,11 +78,11 @@ class DQNAgent:
             end = self.epsilon_end
             decay = self.epsilon_decay
 
-            epsilon_threshold = end + (start - end) * math.exp(-1. * frame_count / decay)
+            epsilon_threshold = end + (start - end) * math.exp(-1. * self.env.frame / decay)
             sample = random.random()
             
             if sample > epsilon_threshold:
-                action = self.select_action(state, frame_count)
+                action = self.select_action(state)
             else:
                 action = self.random_action()
 
@@ -96,7 +95,7 @@ class DQNAgent:
 
         return action
 
-    def optimize_model(self, optimizer, memory, frame=None):
+    def optimize_model(self, optimizer, memory):
         """Optimize the model.
         """
         if len(memory) < memory.batch_size:
@@ -105,6 +104,7 @@ class DQNAgent:
         indices, weights = None, None
 
         if self.prioritized_memory:
+            frame = self.env.frame
             state, action, reward, next_state, done, indices, weights = memory.sample(frame)
         else:
             state, action, reward, next_state, done = memory.sample()
@@ -117,10 +117,11 @@ class DQNAgent:
         next_target_q_values = self.target_model(next_state)
 
         # Calculate estimated q* value
-        if self.double:
+        if self.double: 
             # R' + Ɣ q(s', max_a(s', a'; ϴ); ϴ')
             next_q_values = self.model(next_state)
-            next_q_value = next_target_q_values.gather(1, torch.max(next_q_values, 1)[1].unsqueeze(1))
+            next_max_actions = torch.max(next_q_values, 1)[1].unsqueeze(1)
+            next_q_value = next_target_q_values.gather(1, next_max_actions)
         else:
             # R' + Ɣ max_a q(s', a'; ϴ')
             next_q_value = next_target_q_values.max(1)[0].unsqueeze(1) # Max Q value in next state

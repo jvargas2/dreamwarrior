@@ -44,7 +44,6 @@ class DuelingDQN(nn.Module):
         x = x.view(x.size(0), -1)
         advantage = self.advantage(x)
         value = self.value(x)
-        # return value + advantage - advantage.mean()
 
         if self.num_atoms > 1:
             value = value.view(batch_size, 1, self.num_atoms)
@@ -53,8 +52,6 @@ class DuelingDQN(nn.Module):
             x = F.softmax(x.view(-1, self.num_atoms), dim=1)
             x = x.view(-1, self.num_actions, self.num_atoms)
         else:
-            value = value.view(batch_size, 1)
-            advantage = advantage.view(batch_size, self.num_actions)
             x = value + advantage - advantage.mean()
 
         return x

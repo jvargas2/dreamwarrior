@@ -40,7 +40,7 @@ class Runner:
         agent.model.eval()
         self.agent = agent
 
-    def run(self):
+    def run(self, final_run=True):
         env = self.env
         device = self.device
 
@@ -51,20 +51,38 @@ class Runner:
         final_reward = 0
 
         for t in count():
-            action = self.agent.select_action(state, frame)
+            action = self.agent.select_action(state)
 
             state, reward, done, _ = env.step(action)
-            frame += self.frame_skip
             final_reward += reward
 
             if reward > 0:
-                logging.info('t=%i got reward: %g' % (t, reward))
+                logging.debug('t=%i got reward: %g' % (t, reward))
             elif reward < 0:
-                logging.info('t=%i got penalty: %g' % (t, reward))
+                logging.debug('t=%i got penalty: %g' % (t, reward))
 
             if done:
                 break
 
-        env.close()
+        if final_run:
+            env.close()
+
         logging.info('Finished run.')
         logging.info('Final reward: %d' % final_reward)
+
+        return final_reward
+
+    def evaluate(self, runs=30):
+        rewards = []
+        final_run = False
+    
+        for i in range(runs):
+            if i == runs - 1:
+                final_run = True
+
+            print('Running test %d...' % (i + 1))
+            reward = self.run(final_run=final_run)
+            rewards.append(reward)
+
+        logging.info('Finished evaluation! Final rewards:')
+        logging.info(rewards)

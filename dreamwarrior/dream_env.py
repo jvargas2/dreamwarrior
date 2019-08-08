@@ -18,6 +18,7 @@ class DreamEnv(RetroEnv):
     games and a few functions to make training/playing easier.
     """
     def __init__(self, config, game, name=None, inttype=None, watching=False, **kwargs):
+        self.frame = 1
         self.frame_skip = config.frame_skip
         self.device = config.device
         self.height = config.height
@@ -115,6 +116,7 @@ class DreamEnv(RetroEnv):
         frame_buffer = deque(maxlen=2)
 
         for i in range(self.frame_skip):
+            self.frame += 1
             _, reward, done, _ = super().step(retro_action)
             total_reward += reward
 

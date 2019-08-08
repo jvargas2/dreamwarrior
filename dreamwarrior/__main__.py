@@ -23,6 +23,10 @@ def run(args, config):
     runner = Runner(args.agent, args.cuda)
     runner.run()
 
+def evaluate(args, config):
+    runner = Runner(args.agent, args.cuda)
+    runner.evaluate(args.episodes)
+
 def play_movie(args, config):
     movie = retro.Movie(args.filename)
     movie.step()
@@ -56,18 +60,24 @@ def main():
     parser.add_argument('-p', '--print_logs', action='store_true', help='Use to print logs to console.')
     parser.add_argument('-c', '--cuda', type=int, default=-1, help='Which CUDA device to use. Only supply integer.')
     parser.add_argument('-i', '--ini', help='.ini config file to use')
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(dest='command')
 
     # Train arguments
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
+    parser_train.add_argument('name', default='dream', help='Name of model for properly naming files.')
     parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
-    parser_train.add_argument('-n', '--name', help='Name of model for properly naming files.')
     parser_train.set_defaults(func=train)
 
-    # run arguments
+    # Run arguments
     parser_run = subparsers.add_parser('run', help='run the game with trained agents or human players')
     parser_run.add_argument('-a', '--agent', help='Saved agent to watch.')
     parser_run.set_defaults(func=run)
+
+    # Evaluation arguments
+    parser_evaluate = subparsers.add_parser('evaluate', help='Evaluate agent performance over n episodes.')
+    parser_evaluate.add_argument('-a', '--agent', help='Saved agent to watch.')
+    parser_evaluate.add_argument('-e', '--episodes', default=30, type=int, help='Number of episodes')
+    parser_evaluate.set_defaults(func=evaluate)
 
     # Movie arguments
     parser_movie = subparsers.add_parser('movie', help='Play a recording.')
@@ -78,7 +88,8 @@ def main():
     args = parser.parse_args()
 
     # Logging
-    logging.basicConfig(filename='dreamwarrior.log', format='%(asctime)-15s: %(message)s', level=logging.INFO)
+    filename = '%s.log' % args.name if args.command == 'train' else 'dreamwarrior.log'
+    logging.basicConfig(filename=filename, format='%(asctime)-15s: %(message)s', level=logging.INFO)
     if args.print_logs:
         logging.getLogger().addHandler(logging.StreamHandler())
     start_time = time.time()

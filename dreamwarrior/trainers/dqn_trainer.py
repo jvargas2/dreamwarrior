@@ -57,11 +57,10 @@ class DQNTrainer:
             memory = ReplayMemory(self.config)
 
         episode = 1
-        frame = 1
         episode_rewards = []
         episode_losses = []
 
-        while frame < self.frame_limit:
+        while self.env.frame < self.frame_limit:
             episode_reward = 0
             losses = []
 
@@ -69,10 +68,9 @@ class DQNTrainer:
             state = env.get_state()
 
             for t in count():
-                action = self.agent.act(state, frame)
+                action = self.agent.act(state)
 
                 next_state, reward, done, _ = env.step(action)
-                frame += self.frame_skip
 
                 if reward > 0:
                     logging.debug('t=%i got reward: %g' % (t, reward))
@@ -89,19 +87,20 @@ class DQNTrainer:
 
                 # Perform one step of the optimization (on the target network)
                 loss, indices, priorities = None, None, None
-                if len(memory) >= memory.batch_size and frame > self.min_frames:
-                    loss, indices, priorities = self.agent.optimize_model(optimizer, memory, frame)
+                if len(memory) >= memory.batch_size and self.env.frame > self.min_frames:
+                    loss, indices, priorities = self.agent.optimize_model(optimizer, memory)
 
                 if loss is not None:
                     losses.append(loss)
                     if self.prioritized:
                         memory.update_priorities(indices, priorities)
 
-                if done or frame >= self.frame_limit or t * 4 >= self.episode_frame_max:
+                if done or self.env.frame >= self.frame_limit or t * 4 >= self.episode_frame_max:
                     break
 
             mean_loss = mean(losses) if len(losses) > 0 else 0
             episode_losses.append(mean_loss)
+            frame = self.env.frame
                 
             logging.info('Finished episode ' + str(episode))
             logging.info('Final reward: %d' % episode_reward)

@@ -29,9 +29,6 @@ class DreamConfig:
         self.noisy = model.getboolean('noisy')
         self.categorical = model.getboolean('categorical')
 
-        if self.categorical and not self.double:
-            raise ValueError('Dream Warrior does not support training non-double DQNs')
-
         # Set training parameters
         training = config['training']
         self.gamma = training.getfloat('gamma')

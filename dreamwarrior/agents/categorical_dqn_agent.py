@@ -109,7 +109,7 @@ class CategoricalDQNAgent(DQNAgent):
 
         return loss.item(), indices, priorities
 
-    def select_action(self, state, frame_count):
+    def select_action(self, state):
         state = state.unsqueeze(0)
         distribution = self.model(state)
         distribution = distribution * self.support
