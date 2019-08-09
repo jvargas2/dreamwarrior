@@ -13,7 +13,7 @@ from dreamwarrior.agents import DQNAgent, CategoricalDQNAgent
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 class Runner:
-    def __init__(self, agent_file, device_index=-1):
+    def __init__(self, agent_file, watching=False, device_index=-1):
         data = torch.load(agent_file, map_location='cpu')
         game = data['game']
         agent_class = data['agent_class']
@@ -21,12 +21,10 @@ class Runner:
         config.set_device(device_index)
         self.device = config.device
 
-        env = DreamEnv(config, game, watching=True)
+        env = DreamEnv(config, game, watching=watching)
 
         if agent_class == 'DQNAgent':
             agent_class = DQNAgent
-        elif agent_class == 'DoubleDQNAgent':
-            agent_class = DoubleDQNAgent
         elif agent_class == 'CategoricalDQNAgent':
             agent_class = CategoricalDQNAgent
         else:

@@ -20,11 +20,11 @@ def train(args, config):
     trainer.train()
 
 def run(args, config):
-    runner = Runner(args.agent, args.cuda)
+    runner = Runner(args.agent, args.watching, args.cuda)
     runner.run()
 
 def evaluate(args, config):
-    runner = Runner(args.agent, args.cuda)
+    runner = Runner(args.agent, args.watching, args.cuda)
     runner.evaluate(args.episodes)
 
 def play_movie(args, config):
@@ -60,12 +60,12 @@ def main():
     parser.add_argument('-p', '--print_logs', action='store_true', help='Use to print logs to console.')
     parser.add_argument('-c', '--cuda', type=int, default=-1, help='Which CUDA device to use. Only supply integer.')
     parser.add_argument('-i', '--ini', help='.ini config file to use')
+    parser.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
     subparsers = parser.add_subparsers(dest='command')
 
     # Train arguments
     parser_train = subparsers.add_parser('train', help='Train a new agent.')
     parser_train.add_argument('name', default='dream', help='Name of model for properly naming files.')
-    parser_train.add_argument('-w', '--watching', action='store_true', help='Use to have Gym Retro render the environment.')
     parser_train.set_defaults(func=train)
 
     # Run arguments
