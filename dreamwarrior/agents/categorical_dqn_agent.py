@@ -21,6 +21,7 @@ class CategoricalDQNAgent(DQNAgent):
         ).long().unsqueeze(1).expand(self.batch_size, self.atoms)
 
     def select_action(self, state):
+        state = state.unsqueeze(0)
         distribution = self.model(state)
         distribution = distribution * self.support
         action_values = distribution.sum(2)

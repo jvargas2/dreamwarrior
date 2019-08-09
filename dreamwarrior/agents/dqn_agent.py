@@ -57,13 +57,13 @@ class DQNAgent:
         return action
 
     def select_action(self, state):
+        state = state.unsqueeze(0)
         q_values = self.model(state)
         action = q_values.max(1)[1].item()
         return action
 
     def act(self, state):
         action = None
-        state = state.unsqueeze(0)
 
         if self.noisy:
             with torch.no_grad():
