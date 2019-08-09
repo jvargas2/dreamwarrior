@@ -25,7 +25,7 @@ def run(args, config):
 
 def evaluate(args, config):
     runner = Runner(args.agent, args.watching, args.cuda)
-    runner.evaluate(args.episodes)
+    runner.evaluate(args.episodes, args.random)
 
 def play_movie(args, config):
     movie = retro.Movie(args.filename)
@@ -76,7 +76,8 @@ def main():
     # Evaluation arguments
     parser_evaluate = subparsers.add_parser('evaluate', help='Evaluate agent performance over n episodes.')
     parser_evaluate.add_argument('-a', '--agent', help='Saved agent to watch.')
-    parser_evaluate.add_argument('-e', '--episodes', default=30, type=int, help='Number of episodes')
+    parser_evaluate.add_argument('-e', '--episodes', default=30, type=int, help='Number of episodes.')
+    parser_evaluate.add_argument('-r', '--random', action='store_true', help='Use random actions to establish a baseline instead of the agent.')
     parser_evaluate.set_defaults(func=evaluate)
 
     # Movie arguments

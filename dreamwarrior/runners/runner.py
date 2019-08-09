@@ -10,8 +10,6 @@ from torchvision import transforms
 from dreamwarrior import DreamEnv
 from dreamwarrior.agents import DQNAgent, CategoricalDQNAgent
 
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
-
 class Runner:
     def __init__(self, agent_file, watching=False, device_index=-1):
         data = torch.load(agent_file, map_location='cpu')
@@ -38,18 +36,20 @@ class Runner:
         agent.model.eval()
         self.agent = agent
 
-    def run(self, final_run=True):
+    def run(self, final_run=True, random=False):
         env = self.env
         device = self.device
 
         # Initialize the environment and state
         env.reset()
         state = env.get_state()
-        frame = 0
         final_reward = 0
 
         for t in count():
-            action = self.agent.select_action(state)
+            if random:
+                action = self.agent.random_action()
+            else:
+                action = self.agent.select_action(state)
 
             state, reward, done, _ = env.step(action)
             final_reward += reward
@@ -70,7 +70,7 @@ class Runner:
 
         return final_reward
 
-    def evaluate(self, runs=30):
+    def evaluate(self, runs=30, random=False):
         rewards = []
         final_run = False
     
@@ -79,7 +79,7 @@ class Runner:
                 final_run = True
 
             print('Running test %d...' % (i + 1))
-            reward = self.run(final_run=final_run)
+            reward = self.run(final_run=final_run, random=random)
             rewards.append(reward)
 
         logging.info('Finished evaluation! Final rewards:')
