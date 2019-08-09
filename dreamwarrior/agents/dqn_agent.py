@@ -57,20 +57,17 @@ class DQNAgent:
         return action
 
     def select_action(self, state):
-        # Get state out of batch
-        state = state.unsqueeze(0)
-
-        with torch.no_grad():
-            q_values = self.model(state)
-            action = q_values.max(1)[1].item()
-
+        q_values = self.model(state)
+        action = q_values.max(1)[1].item()
         return action
 
     def act(self, state):
         action = None
+        state = state.unsqueeze(0)
 
         if self.noisy:
-            action = self.select_action(state)
+            with torch.no_grad():
+                action = self.select_action(state)
             self.model.reset_noise()
         else:
             # Epsilon greedy strategy
@@ -105,9 +102,27 @@ class DQNAgent:
 
         if self.prioritized_memory:
             frame = self.env.frame
-            state, action, reward, next_state, done, indices, weights = memory.sample(frame)
+            transitions = memory.sample(frame)
+            indices = transitions[5]
+            weights = transitions[6]
+            transitions = transitions[:5]
         else:
-            state, action, reward, next_state, done = memory.sample()
+            transitions = memory.sample()
+
+        loss, priorities = self.calculate_loss(transitions, weights)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if self.noisy:
+            self.model.reset_noise()
+            self.target_model.reset_noise()
+        
+        return loss.item(), indices, priorities
+
+    def calculate_loss(self, transitions, weights):
+        state, action, reward, next_state, done = transitions
 
         # Get estimated q values
         q_values = self.model(state)
@@ -127,21 +142,7 @@ class DQNAgent:
             next_q_value = next_target_q_values.max(1)[0].unsqueeze(1) # Max Q value in next state
         
         target_q_value = reward + self.gamma * next_q_value * (1 - done) # Bellman Q*
-        
-        # Compute Huber loss
-        loss, priorities = self.calculate_loss(q_value, target_q_value, weights)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        if self.noisy:
-            self.model.reset_noise()
-            self.target_model.reset_noise()
-        
-        return loss.item(), indices, priorities
-
-    def calculate_loss(self, q_value, target_q_value, weights=None):
         if weights is not None:
             loss = F.smooth_l1_loss(q_value, target_q_value, reduction='none')
             loss *= torch.tensor(weights, device=self.device).unsqueeze(1)

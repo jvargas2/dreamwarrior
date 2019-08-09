@@ -1,19 +1,10 @@
 import torch
-
 from dreamwarrior.agents import DQNAgent
 
-#
-import math
-
 class CategoricalDQNAgent(DQNAgent):
-    frame = 0
 
     def __init__(self, env, config):
         super().__init__(env, config)
-        init_screen = env.get_state()
-
-        self.target_model = self.model_class(init_screen.shape, self.num_actions, config.atoms).to(self.device)
-        self.target_model.load_state_dict(self.model.state_dict())
 
         self.batch_size = config.batch_size
         self.atoms = config.atoms # number of atoms
@@ -22,65 +13,69 @@ class CategoricalDQNAgent(DQNAgent):
         self.delta_z = float(self.v_max - self.v_min) / (self.atoms - 1)
         self.support = torch.linspace(self.v_min, self.v_max, self.atoms, device=self.device)
 
+        self.offset = torch.linspace(
+            0,
+            (self.batch_size - 1) * self.atoms,
+            self.batch_size,
+            device=self.device
+        ).long().unsqueeze(1).expand(self.batch_size, self.atoms)
+
+    def select_action(self, state):
+        distribution = self.model(state)
+        distribution = distribution * self.support
+        action_values = distribution.sum(2)
+        action = action_values.max(1)[1].item()
+        return action
+
     def projection_distribution(self, next_state, rewards, dones):
         atoms = self.atoms
         v_min = self.v_min
         v_max = self.v_max
         delta_z = self.delta_z
-        support = self.support
-
-        batch_size = next_state.size(0)
         
-        next_distribution = self.target_model(next_state) * support
-        next_action = next_distribution.sum(2).max(1)[1]
+        target_next_distribution = self.target_model(next_state) * self.support
+        next_action = None
+
+        if self.double:
+            online_next_distribution = self.model(next_state) * self.support
+            next_action = online_next_distribution.sum(2).max(1)[1]
+        else:
+            next_action = target_next_distribution.sum(2).max(1)[1]
+
         next_action = next_action.unsqueeze(1).unsqueeze(1).expand(
-            next_distribution.size(0),
+            target_next_distribution.size(0),
             1,
-            next_distribution.size(2)
+            target_next_distribution.size(2)
         )
-        next_distribution = next_distribution.gather(1, next_action).squeeze(1)
+        next_distribution = target_next_distribution.gather(1, next_action).squeeze(1)
             
         rewards = rewards.expand_as(next_distribution)
         dones = dones.expand_as(next_distribution)
-        support = support.unsqueeze(0).expand_as(next_distribution)
+        support = self.support.unsqueeze(0).expand_as(next_distribution)
         
         Tz = rewards + (1 - dones) * self.gamma * support
         Tz = Tz.clamp(min=v_min, max=v_max)
         b  = (Tz - v_min) / delta_z
         l  = b.floor().long()
         u  = b.ceil().long()
-            
-        offset = torch.linspace(
-            0,
-            (batch_size - 1) * atoms,
-            batch_size,
-            device=self.device
-        ).long().unsqueeze(1).expand(batch_size, atoms)
 
         # Calculate projected distribution
         projection = torch.zeros(next_distribution.size(), device=self.device)
         projection.view(-1).index_add_(
             0,
-            (l + offset).view(-1),
+            (l + self.offset).view(-1),
             (next_distribution * (u.float() - b)
         ).view(-1))
         projection.view(-1).index_add_(
             0,
-            (u + offset).view(-1),
+            (u + self.offset).view(-1),
             (next_distribution * (b - l.float())
         ).view(-1))
             
         return projection
 
-    def optimize_model(self, optimizer, memory, frame=None):
-        """Optimize the model.
-        """
-        indices, weights, priorities = None, None, None
-
-        if self.prioritized_memory:
-            state, action, reward, next_state, done, indices, weights = memory.sample(frame)
-        else:
-            state, action, reward, next_state, done = memory.sample()
+    def calculate_loss(self, transitions, weights):
+        state, action, reward, next_state, done = transitions
 
         projected_distribution = self.projection_distribution(next_state, reward, done)
 
@@ -91,35 +86,5 @@ class CategoricalDQNAgent(DQNAgent):
         loss = -(projected_distribution * distribution.log()).sum(1)
         priorities = torch.abs(loss) + 1e-5
         loss = loss.mean()
-            
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
 
-        if self.noisy:
-            self.model.reset_noise()
-            self.target_model.reset_noise()
-
-        # Update target if appropriate
-        if self.frame > self.frame_update:
-            self.update_target()
-            self.frame = 0
-        else:
-            self.frame += self.frame_skip
-
-        return loss.item(), indices, priorities
-
-    def select_action(self, state):
-        state = state.unsqueeze(0)
-        distribution = self.model(state)
-        distribution = distribution * self.support
-        action_values = distribution.sum(2)
-        action = action_values.max(1)[1].item()
-        return action
-
-    def update_target(self):
-        self.target_model.load_state_dict(self.model.state_dict())
-
-    def load(self, path='test-agent.pt'):
-        super().load(path=path)
-        self.update_target()
+        return loss, priorities
