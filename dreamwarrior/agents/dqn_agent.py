@@ -2,6 +2,7 @@ import random
 import logging
 import math
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -75,7 +76,11 @@ class DQNAgent:
             end = self.epsilon_end
             decay = self.epsilon_decay
 
-            epsilon_threshold = end + (start - end) * math.exp(-1. * self.env.frame / decay)
+            steps_left = decay - self.env.frame
+            bonus = (start - end) * steps_left / decay
+            bonus = np.clip(bonus, 0., 1. - end)
+            epsilon_threshold = end + bonus
+
             sample = random.random()
             
             if sample > epsilon_threshold:

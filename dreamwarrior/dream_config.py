@@ -5,9 +5,15 @@ from torch import device
 
 class DreamConfig:
     def __init__(self, configfile=None):
-        if configfile is None:
+        # Defaul config files
+        if not configfile.endswith('.ini'):
             dirname = os.path.dirname(__file__)
-            configfile = os.path.join(dirname, 'dream.ini')
+            filename = 'rainbow.ini'
+
+            if configfile == 'dqn':
+                filename = 'dqn.ini'
+
+            configfile = os.path.join(dirname, 'config/%s' % filename)
 
         config = ConfigParser()
         config.read(configfile)

@@ -111,13 +111,17 @@ class DreamEnv(RetroEnv):
 
     def step(self, action):
         total_reward, done, info = 0, False, None
-        retro_action = np.zeros((9,), dtype=int)
-        retro_action[action] = 1
+
+        if type(action) == int:
+            retro_action = np.zeros((9,), dtype=int)
+            retro_action[action] = 1
+            action = retro_action
+
         frame_buffer = deque(maxlen=2)
 
         for i in range(self.frame_skip):
             self.frame += 1
-            _, reward, done, _ = super().step(retro_action)
+            _, reward, done, _ = super().step(action)
             total_reward += reward
 
             if self.watching:
