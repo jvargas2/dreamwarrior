@@ -1,25 +1,52 @@
 import logging
 from itertools import count
 from collections import namedtuple
+import time
 
 import numpy as np
 from PIL import Image
 import torch
 from torchvision import transforms
 
-from dreamwarrior import DreamEnv
+from dreamwarrior import DreamEnv, DreamConfig
 from dreamwarrior.agents import DQNAgent, CategoricalDQNAgent
 
 class Runner:
-    def __init__(self, agent_file, watching=False, device_index=-1):
-        data = torch.load(agent_file, map_location='cpu')
-        game = data['game']
-        agent_class = data['agent_class']
+    def __init__(self, players, game=None, watching=False, device_index=-1):
+        """
+        Params:
+            players: List of strings. Either an agent file name or 'human'
+        """
+        # Find best config to use
+        config = None
+
+        data = torch.load(players[0], map_location='cpu')
         config = data['config']
+        
+        if game is None:
+            game = data['game']
+
         config.set_device(device_index)
         self.device = config.device
 
         env = DreamEnv(config, game, watching=watching)
+
+        self.env = env
+        self.frame_skip = config.frame_skip
+
+        configured_players = []
+
+        for player in players:
+            agent = self.configure_agent(player, env)
+            configured_players.append(agent)
+
+        self.players = configured_players
+
+    def configure_agent(self, agent_file, env):
+        data = torch.load(agent_file, map_location='cpu')
+        agent_class = data['agent_class']
+        config = data['config']
+        config.device = self.device
 
         if agent_class == 'DQNAgent':
             agent_class = DQNAgent
@@ -28,13 +55,11 @@ class Runner:
         else:
             raise ValueError('%s is not a valid agent class.' % agent_class)
 
-        self.env = env
-        self.frame_skip = config.frame_skip
-
         agent = agent_class(env, config)
         agent.load(agent_file)
         agent.model.eval()
-        self.agent = agent
+
+        return agent
 
     def run(self, final_run=True, random=False):
         env = self.env
@@ -46,10 +71,13 @@ class Runner:
         final_reward = 0
 
         for t in count():
-            if random:
-                action = self.agent.random_action()
-            else:
-                action = self.agent.select_action(state)
+            action = None
+
+            for agent in self.players:
+                if random:
+                    action = agent.random_action()
+                else:
+                    action = agent.select_action(state)
 
             state, reward, done, _ = env.step(action)
             final_reward += reward

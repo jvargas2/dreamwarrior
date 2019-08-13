@@ -70,8 +70,8 @@ class DQNTrainer:
             # Do up to 30 no-op to avoid overfit trajectories
             no_ops = random.randint(1, 30)
             for i in range(no_ops):
-                action = np.zeros((9,), dtype=int)
-                env.step(action)
+                none_action = env.buttons.index(None)
+                env.step(none_action)
 
             for t in count():
                 action = self.agent.act(state)

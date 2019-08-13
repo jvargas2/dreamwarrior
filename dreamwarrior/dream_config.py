@@ -6,6 +6,9 @@ from torch import device
 class DreamConfig:
     def __init__(self, configfile=None):
         # Defaul config files
+        if configfile is None:
+            dirname = os.path.dirname(__file__)
+            configfile = os.path.join(dirname, 'config/rainbow.ini')
         if not configfile.endswith('.ini'):
             dirname = os.path.dirname(__file__)
             filename = 'rainbow.ini'

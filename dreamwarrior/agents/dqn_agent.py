@@ -18,7 +18,7 @@ class DQNAgent:
         self.device = config.device
         self.env = env
         self.config = config
-        self.num_actions = env.action_space.n
+        self.num_actions = len(env.dream_buttons)
        
         init_screen = env.get_state()
 

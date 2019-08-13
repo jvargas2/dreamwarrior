@@ -20,7 +20,8 @@ def train(args, config):
     trainer.train()
 
 def run(args, config):
-    runner = Runner(args.agent, args.watching, args.cuda)
+    print(args.players)
+    runner = Runner(args.players, args.game, args.watching, args.cuda)
     runner.run()
 
 def evaluate(args, config):
@@ -56,7 +57,7 @@ def main():
     """
     # Argparse setup
     parser = argparse.ArgumentParser(prog='dreamwarrior', description='Train and test Gym Retro agents.')
-    parser.add_argument('-g', '--game', default='NightmareOnElmStreet-Nes', help='Name of game to use for environment.')
+    parser.add_argument('-g', '--game', default=None, help='Name of game to use for environment.')
     parser.add_argument('-p', '--print_logs', action='store_true', help='Use to print logs to console.')
     parser.add_argument('-c', '--cuda', type=int, default=-1, help='Which CUDA device to use. Only supply integer.')
     parser.add_argument('-i', '--ini', help='.ini config file to use')
@@ -70,7 +71,7 @@ def main():
 
     # Run arguments
     parser_run = subparsers.add_parser('run', help='run the game with trained agents or human players')
-    parser_run.add_argument('-a', '--agent', help='Saved agent to watch.')
+    parser_run.add_argument('players', nargs='+', help='Agent files or "human".')
     parser_run.set_defaults(func=run)
 
     # Evaluation arguments

@@ -4,6 +4,7 @@ The custom Dream Warrior env class.
 import os
 from collections import deque
 import logging
+import json
 
 from PIL import Image
 import numpy as np
@@ -27,29 +28,43 @@ class DreamEnv(RetroEnv):
         custom_data_directory = os.path.dirname(os.path.realpath(__file__))
         custom_data_directory += '/data'
         custom_games = os.listdir(custom_data_directory)
+        
+        # Use custom games folder
+        if 'inttype' not in kwargs:
+            if game in custom_games:
+                inttype = retro.data.Integrations.CUSTOM
+                inttype.add_custom_path(os.path.abspath(custom_data_directory))
+                kwargs['inttype'] = inttype
 
+        super().__init__(game, **kwargs)
+
+        # Set up dream_buttons for using only the minimum buttons
+        self.dream_buttons = self.buttons
         if game in custom_games:
-            inttype = retro.data.Integrations.CUSTOM
-            inttype.add_custom_path(os.path.abspath(custom_data_directory))
+            data_path = custom_data_directory + '/' + game + '/data.json'
 
-        if inttype is not None:
-            super().__init__(game, inttype=inttype, **kwargs)
-        else:
-            super().__init__(game, **kwargs)
+            with open(data_path, 'r') as data_file:
+                data = json.load(data_file)
 
+                if 'actions' in data:
+                    self.dream_buttons = data['actions']
+                    self.dream_buttons.append(None)
+
+        # Allow unnamed envs
         if name is not None:
             self.name = name
         else:
             self.name = 'unnamed'
 
+        # Remaining attributes
         self.watching = watching
         self.episode = 1
         self.state_buffer = deque(maxlen=4)
-        empty_state = self.get_frame()
 
+        # Make sure the buffer starts with enough states
+        empty_state = self.get_frame()
         for _ in range(self.frame_skip):
             self.state_buffer.append(empty_state)
-
 
     def get_frame(self):
         """Get retro env render as a torch tensor.
@@ -112,10 +127,15 @@ class DreamEnv(RetroEnv):
     def step(self, action):
         total_reward, done, info = 0, False, None
 
-        if type(action) == int:
-            retro_action = np.zeros((9,), dtype=int)
-            retro_action[action] = 1
-            action = retro_action
+        # Translate action to real action
+        action_name = self.dream_buttons[action]
+        if action_name not in self.buttons:
+            raise ValueError('Invalid action')
+        action = self.buttons.index(action_name)
+
+        retro_action = np.zeros(self.num_buttons, dtype=int)
+        retro_action[action] = 1
+        action = retro_action
 
         frame_buffer = deque(maxlen=2)
 
