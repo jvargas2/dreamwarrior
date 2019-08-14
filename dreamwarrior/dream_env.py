@@ -124,7 +124,7 @@ class DreamEnv(RetroEnv):
     def retro_step(self, action):
         super().step(action)
 
-    def step(self, action):
+    def step(self, action, frame_skip=None):
         total_reward, done, info = 0, False, None
 
         # Translate action to real action
@@ -139,7 +139,10 @@ class DreamEnv(RetroEnv):
 
         frame_buffer = deque(maxlen=2)
 
-        for i in range(self.frame_skip):
+        if frame_skip is None:
+            frame_skip = self.frame_skip
+
+        for i in range(frame_skip):
             self.frame += 1
             _, reward, done, _ = super().step(action)
             total_reward += reward

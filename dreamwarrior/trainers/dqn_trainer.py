@@ -71,7 +71,7 @@ class DQNTrainer:
             no_ops = random.randint(1, 30)
             for i in range(no_ops):
                 none_action = env.buttons.index(None)
-                env.step(none_action)
+                env.step(none_action, frame_skip=1)
 
             for t in count():
                 action = self.agent.act(state)
