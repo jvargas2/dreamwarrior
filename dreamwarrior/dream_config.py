@@ -1,4 +1,5 @@
 import os
+import logging
 from configparser import ConfigParser
 
 from torch import device
@@ -11,13 +12,18 @@ class DreamConfig:
             configfile = os.path.join(dirname, 'config/rainbow.ini')
         if not configfile.endswith('.ini'):
             dirname = os.path.dirname(__file__)
-            filename = 'rainbow.ini'
+            filename = ''
 
             if configfile == 'dqn':
                 filename = 'dqn.ini'
+            elif configfile == 'rainbow':
+                filename = 'rainbow.ini'
+            else:
+                raise ValueError('Invalid default ini. Try "dqn" or "rainbow".')
 
             configfile = os.path.join(dirname, 'config/%s' % filename)
 
+        logging.info('Configfile: %s' % configfile)
         config = ConfigParser()
         config.read(configfile)
 

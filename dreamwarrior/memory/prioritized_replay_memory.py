@@ -37,8 +37,17 @@ class PrioritizedReplayMemory(ReplayMemory):
         else:
             priorities = self.priorities[:self.position]
 
-        # P(i) = (pi^alpha) / (sum(pk^alpha))
+        # (pi^alpha)
         probabilities = priorities ** self.alpha
+
+        # Zero out probabilities for multi-step
+        if self.multi_step > 1:
+            zero_indices = self.get_possible_indices(reverse=True)
+
+            for index in zero_indices:
+                probabilities[index] = 0.0
+
+        # P(i) = (pi^alpha) / (sum(pk^alpha))
         probabilities /= probabilities.sum()
 
         # Select sample based on computed probabilities
