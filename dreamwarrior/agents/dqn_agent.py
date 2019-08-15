@@ -42,7 +42,7 @@ class DQNAgent:
 
         self.double = config.double
         self.noisy = config.noisy
-        self.gamma = config.gamma
+        self.gamma = config.gamma ** config.multi_step
         self.prioritized_memory = config.prioritized
         self.frame_skip = config.frame_skip
         self.frame_update = config.frame_update

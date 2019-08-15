@@ -37,6 +37,7 @@ class DreamConfig:
         self.prioritized = model.getboolean('prioritized')
         self.noisy = model.getboolean('noisy')
         self.categorical = model.getboolean('categorical')
+        self.multi_step = model.getint('multi_step')
 
         # Set training parameters
         training = config['training']
@@ -61,7 +62,6 @@ class DreamConfig:
         self.alpha = memory.getfloat('alpha')
         self.beta_start = memory.getfloat('beta_start')
         self.beta_frames = int(memory.getfloat('beta_frames'))
-        self.multi_step = memory.getint('multi_step')
 
     def set_device(self, device_index):
         if device_index < 0:
