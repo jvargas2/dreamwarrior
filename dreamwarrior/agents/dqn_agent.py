@@ -67,9 +67,8 @@ class DQNAgent:
         action = None
 
         if self.noisy:
-            with torch.no_grad():
-                action = self.select_action(state)
             self.model.reset_noise()
+            action = self.select_action(state)
         else:
             # Epsilon greedy strategy
             start = self.epsilon_start
@@ -103,6 +102,10 @@ class DQNAgent:
         if len(memory) < memory.batch_size:
             return
 
+        if self.noisy:
+            self.model.reset_noise()
+            self.target_model.reset_noise()
+
         indices, weights = None, None
 
         if self.prioritized_memory:
@@ -119,10 +122,6 @@ class DQNAgent:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        if self.noisy:
-            self.model.reset_noise()
-            self.target_model.reset_noise()
         
         return loss.item(), indices, priorities
 
