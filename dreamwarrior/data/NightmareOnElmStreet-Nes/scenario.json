@@ -1,10 +1,4 @@
 {
-  "crop": [
-    0,
-    0,
-    0,
-    0
-  ],
   "done": {
     "variables": {
       "player1_lives": {
@@ -15,13 +9,13 @@
   "reward": {
     "variables": {
       "bones": {
-        "reward": 1000.0
+        "reward": 1.0
       },
       "player1_hits": {
-        "reward": -100.0
+        "reward": -1.0
       },
       "player1_lives": {
-        "penalty": 1000.0
+        "penalty": 1.0
       }
     }
   }

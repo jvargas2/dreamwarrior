@@ -40,5 +40,6 @@
       "address": 1622,
       "type": "|u1"
     }
-  }
+  },
+  "actions": ["B", "UP", "DOWN", "LEFT", "RIGHT", "A"]
 }
