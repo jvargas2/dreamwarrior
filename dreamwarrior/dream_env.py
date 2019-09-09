@@ -110,7 +110,7 @@ class DreamEnv(RetroEnv):
 
             self.record_movie(os.path.join(
                 movie_path,
-                '%s-%04d.bk2' % (self.name, self.episode)
+                '%s-%05d.bk2' % (self.name, self.episode)
             ))
 
             self.episode += 1
